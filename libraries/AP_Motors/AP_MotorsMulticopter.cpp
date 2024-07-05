@@ -231,6 +231,24 @@ const AP_Param::GroupInfo AP_MotorsMulticopter::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("SPOOL_TIM_DN", 44, AP_MotorsMulticopter, _spool_down_time, 0),
 
+    // @Param: TIM_BTW_ROTS
+    // @DisplayName: time betw rotor startups
+    // @Description: (For AP_MotorsCoax) During rotor startup sequence, this is the time between upper rotor startup and lower rotor startup. This time difference is set to avoid lower rotor of GLUAS impacting upper rotor
+    // @Range: 500 - 3000
+    // @Units: ms
+    // @Increment: 500
+    // @User: Advanced
+    AP_GROUPINFO("TIM_BTW_ROTS", 45, AP_MotorsMulticopter, _time_betw_rotor_startups, 1000),
+
+    // @Param: KP_SRV_TRM
+    // @DisplayName: keeping servo at trim before rotor startup sequence is executed
+    // @Description: (For AP_MotorsCoax) if set to 0, it keeps servo at trim pwm before rotor startup sequence is executed
+    // @Range: 0 - 1
+    // @Units: none 
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("KP_SRV_TRM", 46, AP_MotorsMulticopter, _keep_servo_trim, 0),
+    
     AP_GROUPEND
 };
 

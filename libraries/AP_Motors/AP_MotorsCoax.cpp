@@ -64,13 +64,120 @@ void AP_MotorsCoax::set_update_rate(uint16_t speed_hz)
 
 void AP_MotorsCoax::output_to_motors()
 {
-    switch (_spool_state) {
+    // Check arming status and set shutdown_spoolstate_tracker and t_first appropriately
+    if (armed()){
+        if ((t_first != -1) && (((uint32_t)AP_HAL::millis() - t_first) >= (uint32_t)_time_betw_rotor_startups)) {
+            // gcs().send_text(MAV_SEVERITY_INFO,"now: %lu, first: %lu", (uint32_t)AP_HAL::millis(), (uint32_t)t_first); // checking the time diff between now and t_first
+            shutdown_spoolstate_tracker = shutdown_spoolstate_tracker + 1;
+
+            // cap shutdown_spoolstate_tracker at 100 and reset to 2
+            if (shutdown_spoolstate_tracker >= 100){
+                shutdown_spoolstate_tracker = 2;
+            }
+        }
+    } else {
+        // set shutdown_tracker to zero
+        gcs().send_text(MAV_SEVERITY_INFO,"Dans le way si");
+        shutdown_spoolstate_tracker = 0;
+        t_first = -1;
+    }
+
+    if ((uint8_t)_spool_state != (uint8_t)former_spool_state){
+        gcs().send_text(MAV_SEVERITY_INFO,"SPOOL_STATE: %d", (uint8_t)_spool_state);
+        gcs().send_text(MAV_SEVERITY_INFO,"shutdown_spoolstate_tracker: %d", (uint8_t)shutdown_spoolstate_tracker);
+        gcs().send_text(MAV_SEVERITY_INFO,"ARM_STATE1_: %d", (uint8_t)armed());
+        former_spool_state = (uint8_t)_spool_state;
+        // gcs().send_text(MAV_SEVERITY_INFO,"_actuator_out: %.2f", (float)_actuator_out[0]); // was trying to check the boundaries of _actuator_out[i], i=1,2,3,4
+    }
+
+    if (shutdown_spoolstate_tracker == 0) { // either disarmed or armed, but rotors have not been spun up at least once (i.e., spool state has not gone beyond ground idle at least once)
+        gcs().send_text(MAV_SEVERITY_INFO,"SST: 0");
+        switch (_spool_state) {
         case SpoolState::SHUT_DOWN:
             // sends minimum values out to the motors
-            rc_write_angle(AP_MOTORS_MOT_1, _roll_radio_passthrough * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
-            rc_write_angle(AP_MOTORS_MOT_2, _pitch_radio_passthrough * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
-            rc_write_angle(AP_MOTORS_MOT_3, -_roll_radio_passthrough * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
-            rc_write_angle(AP_MOTORS_MOT_4, -_pitch_radio_passthrough * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
+            t_first = -1;
+            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) { 
+                rc_write_angle(AP_MOTORS_MOT_1 + i, _keep_servo_trim * _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE); 
+            }
+            rc_write(AP_MOTORS_MOT_5, output_to_pwm(0));
+            rc_write(AP_MOTORS_MOT_6, output_to_pwm(0));
+            break;
+        case SpoolState::GROUND_IDLE: 
+        // sends output to motors when armed but not flying
+            t_first = AP_HAL::millis(); // record the first time the rotors are commanded a non-zero throttle after SHUT_DOWN spool_state
+
+            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) {
+                rc_write_angle(AP_MOTORS_MOT_1 + i, _keep_servo_trim * _spin_up_ratio * _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
+            }
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_5], actuator_spin_up_to_ground_idle());
+            rc_write(AP_MOTORS_MOT_5, output_to_pwm(_actuator[AP_MOTORS_MOT_5]));
+            rc_write(AP_MOTORS_MOT_6, output_to_pwm(0)); // send zero throttle to motor 6 (i.e., 2nd motor)
+            break;
+        case SpoolState::SPOOLING_UP:
+        case SpoolState::THROTTLE_UNLIMITED:
+        case SpoolState::SPOOLING_DOWN:
+            // set motor output based on thrust requests
+            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) { 
+                rc_write_angle(AP_MOTORS_MOT_1 + i, _keep_servo_trim * _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE); 
+            }
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_5], thr_lin.thrust_to_actuator(_thrust_yt_ccw));
+            rc_write(AP_MOTORS_MOT_5, output_to_pwm(_actuator[AP_MOTORS_MOT_5]));
+            rc_write(AP_MOTORS_MOT_6, output_to_pwm(0)); // send zero throttle to motor 6 (i.e., lower motor)
+            break;
+        }
+
+
+    } else if (shutdown_spoolstate_tracker == 1) { // first time a non-zero throttle is commanded after arming
+        // gcs().send_text(MAV_SEVERITY_INFO,"SST: 1");
+        switch (_spool_state) {
+        case SpoolState::SHUT_DOWN:
+            // sends minimum values out to the motors
+            t_first = -1;
+            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) { 
+                rc_write_angle(AP_MOTORS_MOT_1 + i, _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE); 
+            }
+            rc_write(AP_MOTORS_MOT_5, output_to_pwm(0));
+            rc_write(AP_MOTORS_MOT_6, output_to_pwm(0));
+            break;
+        case SpoolState::GROUND_IDLE:
+            // sends output to motors when armed but not flying
+            t_first = AP_HAL::millis(); // record the first time the rotors are commanded a non-zero throttle after SHUT_DOWN spool_state
+
+            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) {
+                rc_write_angle(AP_MOTORS_MOT_1 + i, _spin_up_ratio * _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
+            }
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_5], actuator_spin_up_to_ground_idle());
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_6], actuator_spin_up_to_ground_idle());
+            rc_write(AP_MOTORS_MOT_5, output_to_pwm(_actuator[AP_MOTORS_MOT_5]));
+            rc_write(AP_MOTORS_MOT_6, output_to_pwm(0));// send zero throttle to motor 6 (i.e., lower motor) if we're still in ground idle spoolstate mode even though vehicle is armed because you want enough rpm to make sure that when you spin upper rotor, it totally spins straight such that lower rotor has no chance of hitting it
+            break;
+        case SpoolState::SPOOLING_UP:
+        case SpoolState::THROTTLE_UNLIMITED:
+        case SpoolState::SPOOLING_DOWN:
+            // set motor output based on thrust requests
+            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) {
+                rc_write_angle(AP_MOTORS_MOT_1 + i, _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
+            }
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_5], thr_lin.thrust_to_actuator(_thrust_yt_ccw));
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_6], thr_lin.thrust_to_actuator(_thrust_yt_cw));
+            rc_write(AP_MOTORS_MOT_5, output_to_pwm(_actuator[AP_MOTORS_MOT_5]));
+            rc_write(AP_MOTORS_MOT_6, output_to_pwm(_actuator[AP_MOTORS_MOT_6]));
+            break;
+        }
+
+
+    } else if (shutdown_spoolstate_tracker > 1) { // In flight
+        switch (_spool_state) {
+        case SpoolState::SHUT_DOWN:
+            // sends minimum values out to the motors
+            
+            // rc_write_angle(AP_MOTORS_MOT_1, _roll_radio_passthrough * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
+            // rc_write_angle(AP_MOTORS_MOT_2, _pitch_radio_passthrough * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
+            // rc_write_angle(AP_MOTORS_MOT_3, -_roll_radio_passthrough * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
+            // rc_write_angle(AP_MOTORS_MOT_4, -_pitch_radio_passthrough * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
+            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) { 
+                rc_write_angle(AP_MOTORS_MOT_1 + i, _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE); 
+            }
             rc_write(AP_MOTORS_MOT_5, output_to_pwm(0));
             rc_write(AP_MOTORS_MOT_6, output_to_pwm(0));
             break;
@@ -96,7 +203,9 @@ void AP_MotorsCoax::output_to_motors()
             rc_write(AP_MOTORS_MOT_5, output_to_pwm(_actuator[AP_MOTORS_MOT_5]));
             rc_write(AP_MOTORS_MOT_6, output_to_pwm(_actuator[AP_MOTORS_MOT_6]));
             break;
+        }
     }
+
 }
 
 // get_motor_mask - returns a bitmask of which outputs are being used for motors or servos (1 means being used)
@@ -251,3 +360,5 @@ void AP_MotorsCoax::_output_test_seq(uint8_t motor_seq, int16_t pwm)
             break;
     }
 }
+
+

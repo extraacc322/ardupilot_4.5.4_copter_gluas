@@ -42,6 +42,9 @@ public:
     // get_motor_mask - returns a bitmask of which outputs are being used for motors or servos (1 means being used)
     //  this can be used to ensure other pwm outputs (i.e. for servos) do not conflict
     uint32_t            get_motor_mask() override;
+    uint8_t former_spool_state = 100; // store former spool state
+    uint8_t shutdown_spoolstate_tracker = 0; // this parameter is reset to zero every time the vehicle is disarmed. It is used to track the first time the rotors are spun after the vehicle is armed. So, that based on that, the rotor startup sequence can be implemented only once after arming.
+    uint32_t t_first = -1; // records the first time the rotors are commanded a non-zero throttle after the vehicle is armed. It is set to -1 when the vehicle is disarmed and based on the ground_idle _spool_state to make sure that the vehicle completely gets out of the _spool_state before the lower rotor is allowed to spin
 
     // Run arming checks
     bool arming_checks(size_t buflen, char *buffer) const override { return AP_Motors::arming_checks(buflen, buffer); }
