@@ -77,21 +77,21 @@ void AP_MotorsCoax::output_to_motors()
         }
     } else {
         // set shutdown_tracker to zero
-        gcs().send_text(MAV_SEVERITY_INFO,"Dans le way si");
+        // gcs().send_text(MAV_SEVERITY_INFO,"Dans le way si");
         shutdown_spoolstate_tracker = 0;
         t_first = -1;
     }
 
-    if ((uint8_t)_spool_state != (uint8_t)former_spool_state){
-        gcs().send_text(MAV_SEVERITY_INFO,"SPOOL_STATE: %d", (uint8_t)_spool_state);
-        gcs().send_text(MAV_SEVERITY_INFO,"shutdown_spoolstate_tracker: %d", (uint8_t)shutdown_spoolstate_tracker);
-        gcs().send_text(MAV_SEVERITY_INFO,"ARM_STATE1_: %d", (uint8_t)armed());
-        former_spool_state = (uint8_t)_spool_state;
-        // gcs().send_text(MAV_SEVERITY_INFO,"_actuator_out: %.2f", (float)_actuator_out[0]); // was trying to check the boundaries of _actuator_out[i], i=1,2,3,4
-    }
+    // if ((uint8_t)_spool_state != (uint8_t)former_spool_state){
+    //     gcs().send_text(MAV_SEVERITY_INFO,"SPOOL_STATE: %d", (uint8_t)_spool_state);
+    //     gcs().send_text(MAV_SEVERITY_INFO,"shutdown_spoolstate_tracker: %d", (uint8_t)shutdown_spoolstate_tracker);
+    //     gcs().send_text(MAV_SEVERITY_INFO,"ARM_STATE_: %d", (uint8_t)armed());
+    //     former_spool_state = (uint8_t)_spool_state;
+    //     // gcs().send_text(MAV_SEVERITY_INFO,"_actuator_out: %.2f", (float)_actuator_out[0]); // was trying to check the boundaries of _actuator_out[i], i=1,2,3,4
+    // }
 
     if (shutdown_spoolstate_tracker == 0) { // either disarmed or armed, but rotors have not been spun up at least once (i.e., spool state has not gone beyond ground idle at least once)
-        gcs().send_text(MAV_SEVERITY_INFO,"SST: 0");
+        // gcs().send_text(MAV_SEVERITY_INFO,"SST: 0");
         switch (_spool_state) {
         case SpoolState::SHUT_DOWN:
             // sends minimum values out to the motors
@@ -128,7 +128,7 @@ void AP_MotorsCoax::output_to_motors()
 
 
     } else if (shutdown_spoolstate_tracker == 1) { // first time a non-zero throttle is commanded after arming
-        // gcs().send_text(MAV_SEVERITY_INFO,"SST: 1");
+        gcs().send_text(MAV_SEVERITY_INFO,"SST: 1");
         switch (_spool_state) {
         case SpoolState::SHUT_DOWN:
             // sends minimum values out to the motors
