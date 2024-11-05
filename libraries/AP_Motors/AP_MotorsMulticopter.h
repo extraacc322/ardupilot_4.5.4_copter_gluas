@@ -169,6 +169,7 @@ protected:
     // For AP_MotorsCoax
     AP_Int32            _time_betw_rotor_startups;  //(For AP_MotorsCoax) During rotor startup sequence, this is the time between upper rotor startup and lower rotor startup. This time difference is set to avoid lower rotor of GLUAS impacting upper rotor
     AP_Float            _keep_servo_trim; // (0 ~ 1) if 0, then servos remain at trim pwm before the rotor startup sequence is executed, if set to 1 then servos function normally even before start up sequence is executed
+    AP_Float            _scale_servo_output; // (1 ~ 3) Scale attitude output to servo to get larger servo response. Larger numbers means larger response. Limit scaling to factor of 3.
 
     // Maximum lean angle of yaw servo in degrees. This is specific to tricopter
     AP_Float            _yaw_servo_angle_max_deg;

@@ -248,6 +248,15 @@ const AP_Param::GroupInfo AP_MotorsMulticopter::var_info[] = {
     // @Increment: 1
     // @User: Advanced
     AP_GROUPINFO("KP_SRV_TRM", 46, AP_MotorsMulticopter, _keep_servo_trim, 0),
+
+    // @Param: SCAL_SRV_OUT
+    // @DisplayName: Scale attitude output to servo in order to get larger servo response
+    // @Description: (For AP_MotorsCoax) (1 ~ 3) Scale attitude output to servo to get larger servo response. Larger numbers means larger response. Limit scaling to factor of 3.
+    // @Range: 1 - 3
+    // @Units: none 
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("SCAL_SRV_OUT", 47, AP_MotorsMulticopter, _scale_servo_output, 2),
     
     AP_GROUPEND
 };
