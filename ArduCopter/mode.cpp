@@ -18,6 +18,7 @@ Mode::Mode(void) :
     ahrs(copter.ahrs),
     attitude_control(copter.attitude_control),
     motors(copter.motors),
+    // motors_coax(copter.motors_coax),
     channel_roll(copter.channel_roll),
     channel_pitch(copter.channel_pitch),
     channel_throttle(copter.channel_throttle),
@@ -52,6 +53,12 @@ Mode *Copter::mode_from_mode_num(const Mode::Number mode)
 #if MODE_AUTO_ENABLED == ENABLED
         case Mode::Number::AUTO:
             ret = &mode_auto;
+            break;
+#endif
+
+#if MODE_COAX_LAUNCH_MANUAL_ENABLED == ENABLED
+        case Mode::Number::COAX_LAUNCH_MANUAL:
+            ret = &mode_coax_launch_manual;
             break;
 #endif
 

@@ -5,7 +5,7 @@
 #include <AP_ExternalControl/AP_ExternalControl_config.h> // TODO why is this needed if Copter.h includes this
 class Parameters;
 class ParametersG2;
-
+// class AP_MotorsCoax;
 class GCS_Copter;
 
 // object shared by both Guided and Auto for takeoff.
@@ -95,6 +95,7 @@ public:
         AUTOROTATE =   26,  // Autonomous autorotation
         AUTO_RTL =     27,  // Auto RTL, this is not a true mode, AUTO will report as this mode if entered to perform a DO_LAND_START Landing sequence
         TURTLE =       28,  // Flip over after crash
+        COAX_LAUNCH_MANUAL =       29,  // After launch, Stabilize vehicle using pilot inputs 
 
         // Mode number 127 reserved for the "drone show mode" in the Skybrush
         // fork at https://github.com/skybrush-io/ardupilot
@@ -243,6 +244,7 @@ protected:
     AP_AHRS &ahrs;
     AC_AttitudeControl *&attitude_control;
     MOTOR_CLASS *&motors;
+    // AP_MotorsCoax *&motors_coax;
     RC_Channel *&channel_roll;
     RC_Channel *&channel_pitch;
     RC_Channel *&channel_throttle;
@@ -1537,6 +1539,38 @@ private:
 
 };
 
+class ModeCoaxLaunchManual : public Mode {
+
+public:
+    // inherit constructor
+    using Mode::Mode;
+    Number mode_number() const override { return Number::COAX_LAUNCH_MANUAL; }
+    
+    bool init(bool ignore_checks) override;
+    virtual void run() override;
+
+    bool requires_GPS() const override { return false; }
+    bool has_manual_throttle() const override { return true; }
+    bool allows_arming(AP_Arming::Method method) const override { return true; };
+    bool is_autopilot() const override { return false; }
+    bool allows_save_trim() const override { return true; }
+    bool allows_autotune() const override { return true; }
+    bool allows_flip() const override { return true; }
+
+protected:
+
+    const char *name() const override { return "COAX_LAUNCH_MANUAL"; }
+    const char *name4() const override { return "COLM"; }
+
+private:
+    void launch_detected();
+    // Tube Launch Parameters
+    int16_t climb_rate_launch_mode;
+    int16_t climb_rate_after_arm_indicator = 0;
+    uint32_t time_of_launch = -1;
+    // float time_for_imu_to_recover_after_launch;
+    bool launch_over_msg_sent = false;
+};
 
 class ModeStabilize : public Mode {
 
@@ -1563,6 +1597,7 @@ protected:
 private:
 
 };
+
 
 #if FRAME_CONFIG == HELI_FRAME
 class ModeStabilize_Heli : public ModeStabilize {

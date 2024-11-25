@@ -257,7 +257,34 @@ const AP_Param::GroupInfo AP_MotorsMulticopter::var_info[] = {
     // @Increment: 1
     // @User: Advanced
     AP_GROUPINFO("SCAL_SRV_OUT", 47, AP_MotorsMulticopter, _scale_servo_output, 2),
+
+    // @Param: yaw_thrust_limit
+    // @DisplayName: // yaw thrust limit during launch
+    // @Description: (For AP_MotorsCoax) (0 ~ 1) // yaw thrust limit during launch
+    // @Range: 0 - 1
+    // @Units: none 
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("YAW_THR_LIM", 48, AP_MotorsMulticopter, yaw_thrust_limit, 0.1),
     
+    // @Param: roll_actuator_limit
+    // @DisplayName: // yaw thrust limit during launch
+    // @Description: (For AP_MotorsCoax) (0 ~ 1) // roll actuator limit during launch
+    // @Range: 0 - 1
+    // @Units: none 
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("RLL_ACT_LIM", 49, AP_MotorsMulticopter, roll_actuator_limit, 0.1),
+
+    // @Param: pitch_actuator_limit
+    // @DisplayName: // yaw thrust limit during launch
+    // @Description: (For AP_MotorsCoax) (0 ~ 1) // pitch actuator limit during launch
+    // @Range: 0 - 1
+    // @Units: none 
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("PITC_ACT_LIM", 50, AP_MotorsMulticopter, pitch_actuator_limit, 0.1),
+
     AP_GROUPEND
 };
 

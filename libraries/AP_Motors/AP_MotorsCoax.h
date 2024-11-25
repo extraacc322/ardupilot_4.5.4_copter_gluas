@@ -42,20 +42,31 @@ public:
     // get_motor_mask - returns a bitmask of which outputs are being used for motors or servos (1 means being used)
     //  this can be used to ensure other pwm outputs (i.e. for servos) do not conflict
     uint32_t            get_motor_mask() override;
-    uint8_t former_spool_state = 100; // store former spool state
-    uint8_t shutdown_spoolstate_tracker = 0; // this parameter is reset to zero every time the vehicle is disarmed. It is used to track the first time the rotors are spun after the vehicle is armed. So, that based on that, the rotor startup sequence can be implemented only once after arming.
-    uint32_t t_first = -1; // records the first time the rotors are commanded a non-zero throttle after the vehicle is armed. It is set to -1 when the vehicle is disarmed and based on the ground_idle _spool_state to make sure that the vehicle completely gets out of the _spool_state before the lower rotor is allowed to spin
 
+    // // Coax Launch Parameters
+    // void            set_launch_detected(uint8_t _launch_detected) { launch_detected = _launch_detected; } // launch_detected = 0 (not in launch phase) or 1 (in launch phase)
+    // uint8_t         get_launch_detected() const { return launch_detected; }
+    // void            set_t_first(uint8_t _t_first) { t_first = _t_first; } // launch_detected = 0 (not in launch phase) or 1 (in launch phase)
+    // uint32_t         get_t_first() const { return t_first; }
+    // void            set_shutdown_spoolstate_tracker(uint32_t _shutdown_spoolstate_tracker) { shutdown_spoolstate_tracker = _shutdown_spoolstate_tracker; } // launch_detected = 0 (not in launch phase) or 1 (in launch phase)
+    // uint8_t        get_shutdown_spoolstate_tracker() const { return shutdown_spoolstate_tracker; }
+    
+    // //
+    // uint8_t             former_spool_state = 100; // store former spool state
+    // uint8_t             shutdown_spoolstate_tracker = 0; // this parameter is reset to zero every time the vehicle is disarmed. It is used to track the first time the rotors are spun after the vehicle is armed. So, that based on that, the rotor startup sequence can be implemented only once after arming.
+    // uint32_t            t_first = -1; // records the time when the rotors are first commanded a non-zero throttle after the vehicle is armed. It is set to -1 when the vehicle is disarmed and based on the ground_idle _spool_state to make sure that the vehicle completely gets out of the _spool_state before the lower rotor is allowed to spin
+    
+    
     // Run arming checks
     bool arming_checks(size_t buflen, char *buffer) const override { return AP_Motors::arming_checks(buflen, buffer); }
 
 protected:
     // output - sends commands to the motors
     void                output_armed_stabilizing() override;
-
     float               _actuator_out[NUM_ACTUATORS]; // combined roll, pitch, yaw and throttle outputs to motors in 0~1 range
     float               _thrust_yt_ccw;
     float               _thrust_yt_cw;
+    // uint8_t             launch_detected = 0;            // current launch detected state
 
     const char* _get_frame_string() const override { return "COAX"; }
 

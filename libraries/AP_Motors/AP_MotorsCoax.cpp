@@ -74,12 +74,14 @@ void AP_MotorsCoax::output_to_motors()
             if (shutdown_spoolstate_tracker >= 100){
                 shutdown_spoolstate_tracker = 2;
             }
+            
         }
     } else {
         // set shutdown_tracker to zero
         // gcs().send_text(MAV_SEVERITY_INFO,"Dans le way si");
         shutdown_spoolstate_tracker = 0;
         t_first = -1;
+
     }
 
     // if ((uint8_t)_spool_state != (uint8_t)former_spool_state){
@@ -247,7 +249,7 @@ void AP_MotorsCoax::output_armed_stabilizing()
     yaw_thrust = (_yaw_in + _yaw_in_ff); //* compensation_gain;
     throttle_thrust = get_throttle(); //* compensation_gain;
     throttle_avg_max = _throttle_avg_max; //* compensation_gain;
-
+    
     // sanity check throttle is above zero and below current limited throttle
     if (throttle_thrust <= 0.0f) {
         throttle_thrust = 0.0f;
@@ -300,6 +302,11 @@ void AP_MotorsCoax::output_armed_stabilizing()
         yaw_thrust = constrain_float(yaw_thrust, -thrust_out, thrust_out);
         limit.yaw = true;
     }
+    
+    // Limit differential yaw outputs at the during launch phase and the transition from launch phase to hover 
+    if (launch_detected == 1){
+        yaw_thrust = constrain_float(yaw_thrust, -yaw_thrust_limit, yaw_thrust_limit);
+    }
 
     // send thrust output to cw and ccw motors, by adding the +- the yaw thrust to the base thrust to be sent out
     _thrust_yt_ccw = thrust_out + 0.5f * yaw_thrust;
@@ -307,7 +314,6 @@ void AP_MotorsCoax::output_armed_stabilizing()
 
     // limit thrust out for calculation of actuator gains
     // float thrust_out_actuator = constrain_float(MAX(_throttle_hover * 0.5f, thrust_out), 0.5f, 1.0f);
-
     if (is_zero(thrust_out)) {
         limit.roll = true;
         limit.pitch = true;
@@ -329,6 +335,14 @@ void AP_MotorsCoax::output_armed_stabilizing()
         limit.pitch = true;
         _actuator_out[1] = constrain_float(_actuator_out[1], -1.0f, 1.0f);
     }
+    
+    // Limit roll and pitch actuator outputs at the beginning of the launch
+    if (launch_detected == 1){
+        _actuator_out[1] = constrain_float(_actuator_out[1], -roll_actuator_limit, roll_actuator_limit);
+        _actuator_out[0] = constrain_float(_actuator_out[0], -pitch_actuator_limit, pitch_actuator_limit);
+    }
+    // gcs().send_text(MAV_SEVERITY_INFO, "a0, a1, yt: %d, %.2f, %.2f, %.2f", launch_detected, _actuator_out[0], _actuator_out[1], yaw_thrust);
+    
     _actuator_out[2] = -_actuator_out[0];
     _actuator_out[3] = -_actuator_out[1];
 }

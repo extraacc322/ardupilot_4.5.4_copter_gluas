@@ -253,6 +253,13 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
+// Coax Manual Launch - fly coax vehicle manually after launching it in the air
+#ifndef MODE_COAX_LAUNCH_MANUAL_ENABLED
+# define MODE_COAX_LAUNCH_MANUAL_ENABLED ENABLED
+#endif
+
+
+//////////////////////////////////////////////////////////////////////////////
 // ZigZag - allow vehicle to fly in a zigzag manner with predefined point A B
 #ifndef MODE_ZIGZAG_ENABLED
 # define MODE_ZIGZAG_ENABLED ENABLED
@@ -307,7 +314,7 @@
 //
 
 #ifndef FLIGHT_MODE_1
- # define FLIGHT_MODE_1                  Mode::Number::STABILIZE
+ # define FLIGHT_MODE_1                  Mode::Number::COAX_LAUNCH_MANUAL
 #endif
 #ifndef FLIGHT_MODE_2
  # define FLIGHT_MODE_2                  Mode::Number::STABILIZE

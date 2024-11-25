@@ -227,6 +227,7 @@ public:
     friend class ModeZigZag;
     friend class ModeAutorotate;
     friend class ModeTurtle;
+    friend class ModeCoaxLaunchManual;
 
     friend class _AutoTakeoff;
 
@@ -441,6 +442,7 @@ private:
 
     // Motor Output
     MOTOR_CLASS *motors;
+    // AP_MotorsCoax *motors_coax;
     const struct AP_Param::GroupInfo *motors_var_info;
 
     int32_t _home_bearing;
@@ -1034,6 +1036,9 @@ private:
 #endif
 #if MODE_THROW_ENABLED == ENABLED
     ModeThrow mode_throw;
+#endif
+#if MODE_COAX_LAUNCH_MANUAL_ENABLED == ENABLED
+    ModeCoaxLaunchManual mode_coax_launch_manual;
 #endif
 #if MODE_GUIDED_NOGPS_ENABLED == ENABLED
     ModeGuidedNoGPS mode_guided_nogps;

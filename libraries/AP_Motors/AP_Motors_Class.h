@@ -166,7 +166,21 @@ public:
     void                set_thrust_boost(bool enable) { _thrust_boost = enable; }
     bool                get_thrust_boost() const { return _thrust_boost; }
     virtual uint8_t     get_lost_motor() const { return 0; }
-
+    
+    // Coax Launch Parameters
+    void            set_launch_detected(uint8_t _launch_detected) { launch_detected = _launch_detected; } // launch_detected = 0 (not in launch phase) or 1 (in launch phase)
+    uint8_t         get_launch_detected() const { return launch_detected; }
+    void            set_t_first(uint8_t _t_first) { t_first = _t_first; } // launch_detected = 0 (not in launch phase) or 1 (in launch phase)
+    uint32_t        get_t_first() const { return t_first; }
+    void            set_shutdown_spoolstate_tracker(uint32_t _shutdown_spoolstate_tracker) { shutdown_spoolstate_tracker = _shutdown_spoolstate_tracker; } // launch_detected = 0 (not in launch phase) or 1 (in launch phase)
+    uint8_t         get_shutdown_spoolstate_tracker() const { return shutdown_spoolstate_tracker; }
+    
+    //
+    uint8_t             former_spool_state = 100; // store former spool state
+    uint8_t             shutdown_spoolstate_tracker = 0; // this parameter is reset to zero every time the vehicle is disarmed. It is used to track the first time the rotors are spun after the vehicle is armed. So, that based on that, the rotor startup sequence can be implemented only once after arming.
+    uint32_t            t_first = -1; // records the time when the rotors are first commanded a non-zero throttle after the vehicle is armed. It is set to -1 when the vehicle is disarmed and based on the ground_idle _spool_state to make sure that the vehicle completely gets out of the _spool_state before the lower rotor is allowed to spin
+    // uint32_t            time_for_imu_to_recover_after_launch; // time it takes for imu to recover after launch
+    
     // desired spool states
     enum class DesiredSpoolState : uint8_t {
         SHUT_DOWN = 0,              // all motors should move to stop
@@ -332,6 +346,9 @@ protected:
 
     // mask of what channels need fast output
     uint32_t            _motor_fast_mask;
+    
+    // Coax Launch Parameter
+    uint8_t             launch_detected = 0;            // current launch detected state
 
     // mask of what channels need to use SERVOn_MIN/MAX for output mapping
     uint32_t            _motor_pwm_range_mask;
