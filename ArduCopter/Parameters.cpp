@@ -1256,6 +1256,13 @@ const AP_Param::GroupInfo ParametersG2::var_info2[] = {
     // @Range: 0 10000 milliseconds
     // @User: Standard
     AP_GROUPINFO("IMU_RECUP_TIM", 9, ParametersG2, time_for_imu_to_recover_after_launch, 2000),
+
+    // @Param: LAUNC_BARO_CR
+    // @DisplayName: launch_initial_baro_climb_rate, m/s
+    // @Description: Vehicle will detect launch based upon this condition
+    // @Range: 100 - 300 m/s
+    // @User: Standard
+    AP_GROUPINFO("LAUNC_BARO_CR", 10, ParametersG2, launch_initial_baro_climb_rate, 100),
 #endif
 
     // ID 62 is reserved for the AP_SUBGROUPEXTENSION

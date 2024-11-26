@@ -705,6 +705,7 @@ public:
 
 #if MODE_COAX_LAUNCH_MANUAL_ENABLED == ENABLED
     AP_Int32 time_for_imu_to_recover_after_launch; // time it takes for imu to recover after launch
+    AP_Int16 launch_initial_baro_climb_rate; // time it takes for imu to recover after launch
 #endif
 
 };

@@ -123,7 +123,7 @@ void ModeCoaxLaunchManual::launch_detected(){
         }
 
         // cap climb_rate_after_arm_indicator at 100 and reset to 2
-        if (climb_rate_after_arm_indicator >= 100){
+        if (climb_rate_after_arm_indicator >= g2.launch_initial_baro_climb_rate){
             climb_rate_after_arm_indicator = 2;
         }
     }
@@ -135,11 +135,10 @@ void ModeCoaxLaunchManual::launch_detected(){
     if (shutdown_spoolstate_tracker_ == 1){ // first time motors are spun after arming
         t_first_ = motors->get_t_first();
     }
-
-    if (t_first_ != -1){
-        if ((AP_HAL::millis() - t_first_) >= g2.time_for_imu_to_recover_after_launch){
-            motors->set_launch_detected(0);
-            if (!launch_over_msg_sent){
+    if (climb_rate_after_arm_indicator != 0){
+        if (t_first_ != -1){
+            if (((AP_HAL::millis() - t_first_) >= g2.time_for_imu_to_recover_after_launch) && (!launch_over_msg_sent)){
+                motors->set_launch_detected(0);
                 gcs().send_text(MAV_SEVERITY_INFO,"LAUNCH OVER");
                 gcs().send_text(MAV_SEVERITY_INFO,"t_first, t_now: %ld, %ld", t_first_, AP_HAL::millis());
                 launch_over_msg_sent = true;
