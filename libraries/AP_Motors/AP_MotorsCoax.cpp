@@ -109,7 +109,7 @@ void AP_MotorsCoax::output_to_motors()
             break;
         case SpoolState::GROUND_IDLE: 
         // sends output to motors when armed but not flying
-            t_first = AP_HAL::millis(); // record the first time the rotors are commanded a non-zero throttle after SHUT_DOWN spool_state
+            // t_first = AP_HAL::millis(); // record the first time the rotors are commanded a non-zero throttle after SHUT_DOWN spool_state
 
             for (uint8_t i = 0; i < NUM_ACTUATORS; i++) {
                 rc_write_angle(AP_MOTORS_MOT_1 + i, _keep_servo_trim * _spin_up_ratio * _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
@@ -119,6 +119,15 @@ void AP_MotorsCoax::output_to_motors()
             rc_write(AP_MOTORS_MOT_6, output_to_pwm(0)); // send zero throttle to motor 6 (i.e., 2nd motor)
             break;
         case SpoolState::SPOOLING_UP:
+            t_first = AP_HAL::millis(); // record the first time the rotors are commanded a non-zero throttle after SHUT_DOWN spool_state
+            // set motor output based on thrust requests
+            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) { 
+                rc_write_angle(AP_MOTORS_MOT_1 + i, _keep_servo_trim * _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE); 
+            }
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_5], thr_lin.thrust_to_actuator(_thrust_yt_ccw));
+            rc_write(AP_MOTORS_MOT_5, output_to_pwm(_actuator[AP_MOTORS_MOT_5]));
+            rc_write(AP_MOTORS_MOT_6, output_to_pwm(0)); // send zero throttle to motor 6 (i.e., lower motor)
+            break;
         case SpoolState::THROTTLE_UNLIMITED:
         case SpoolState::SPOOLING_DOWN:
             // set motor output based on thrust requests
@@ -137,7 +146,7 @@ void AP_MotorsCoax::output_to_motors()
         switch (_spool_state) {
         case SpoolState::SHUT_DOWN:
             // sends minimum values out to the motors
-            t_first = -1;
+            // t_first = -1;
             for (uint8_t i = 0; i < NUM_ACTUATORS; i++) { 
                 rc_write_angle(AP_MOTORS_MOT_1 + i, _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE); 
             }
@@ -146,7 +155,7 @@ void AP_MotorsCoax::output_to_motors()
             break;
         case SpoolState::GROUND_IDLE:
             // sends output to motors when armed but not flying
-            t_first = AP_HAL::millis(); // record the first time the rotors are commanded a non-zero throttle after SHUT_DOWN spool_state
+            // t_first = AP_HAL::millis(); // record the first time the rotors are commanded a non-zero throttle after SHUT_DOWN spool_state
 
             for (uint8_t i = 0; i < NUM_ACTUATORS; i++) {
                 rc_write_angle(AP_MOTORS_MOT_1 + i, _spin_up_ratio * _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
