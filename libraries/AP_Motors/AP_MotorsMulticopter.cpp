@@ -285,6 +285,15 @@ const AP_Param::GroupInfo AP_MotorsMulticopter::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("PITC_ACT_LIM", 50, AP_MotorsMulticopter, pitch_actuator_limit, 0.1),
 
+    // @Param: yaw_trim
+    // @DisplayName: // coax trim for yaw 
+    // @Description: (For AP_MotorsCoax) (0 ~ 1) // scale base thrust 
+    // @Range: 0 - 1
+    // @Units: none 
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("CX_YW_TRM", 51, AP_MotorsMulticopter, yaw_trim, 1),
+
     AP_GROUPEND
 };
 

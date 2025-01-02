@@ -318,8 +318,8 @@ void AP_MotorsCoax::output_armed_stabilizing()
     }
 
     // send thrust output to cw and ccw motors, by adding the +- the yaw thrust to the base thrust to be sent out
-    _thrust_yt_ccw = thrust_out + 0.5f * yaw_thrust;
-    _thrust_yt_cw = thrust_out - 0.5f * yaw_thrust;
+    _thrust_yt_ccw = (thrust_out) + (0.5f * yaw_thrust);
+    _thrust_yt_cw = (yaw_trim*thrust_out) - (0.5f * yaw_thrust);
 
     // limit thrust out for calculation of actuator gains
     // float thrust_out_actuator = constrain_float(MAX(_throttle_hover * 0.5f, thrust_out), 0.5f, 1.0f);

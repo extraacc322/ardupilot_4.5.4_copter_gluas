@@ -173,7 +173,7 @@ protected:
     AP_Float            yaw_thrust_limit; // yaw thrust limit during launch
     AP_Float            roll_actuator_limit; // roll actuator limit during launch
     AP_Float            pitch_actuator_limit; // pitch actuator limit during launch
-
+    AP_Float            yaw_trim; // yaw trim on coax motors    
 
     // Maximum lean angle of yaw servo in degrees. This is specific to tricopter
     AP_Float            _yaw_servo_angle_max_deg;
