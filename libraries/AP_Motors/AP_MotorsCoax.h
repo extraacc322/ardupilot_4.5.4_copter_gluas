@@ -10,7 +10,9 @@
 #define AP_MOTORS_COAX_POSITIVE      1
 #define AP_MOTORS_COAX_NEGATIVE     -1
 
-#define NUM_ACTUATORS 4
+#define NUM_ACTUATORS_COAX 6
+
+
 
 #define AP_MOTORS_SINGLE_SPEED_DIGITAL_SERVOS 250 // update rate for digital servos
 #define AP_MOTORS_SINGLE_SPEED_ANALOG_SERVOS 125  // update rate for analog servos
@@ -39,6 +41,9 @@ public:
     // output_to_motors - sends minimum values out to the motors
     virtual void        output_to_motors() override;
 
+    // 
+    bool                check_coaxrotorstartup_timer_condition();
+
     // get_motor_mask - returns a bitmask of which outputs are being used for motors or servos (1 means being used)
     //  this can be used to ensure other pwm outputs (i.e. for servos) do not conflict
     uint32_t            get_motor_mask() override;
@@ -63,7 +68,7 @@ public:
 protected:
     // output - sends commands to the motors
     void                output_armed_stabilizing() override;
-    float               _actuator_out[NUM_ACTUATORS]; // combined roll, pitch, yaw and throttle outputs to motors in 0~1 range
+    float               _actuator_out[NUM_ACTUATORS_COAX]; // combined roll, pitch, yaw and throttle outputs to motors in 0~1 range
     float               _thrust_yt_ccw;
     float               _thrust_yt_cw;
     // uint8_t             launch_detected = 0;            // current launch detected state

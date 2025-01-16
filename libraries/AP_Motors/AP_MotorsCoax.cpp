@@ -30,11 +30,12 @@ void AP_MotorsCoax::init(motor_frame_class frame_class, motor_frame_type frame_t
     }
 
     // set the motor_enabled flag so that the main ESC can be calibrated like other frame types
-    motor_enabled[AP_MOTORS_MOT_5] = true;
-    motor_enabled[AP_MOTORS_MOT_6] = true;
+    motor_enabled[AP_MOTORS_MOT_1] = true;
+    motor_enabled[AP_MOTORS_MOT_4] = true;
 
     // setup actuator scaling
-    for (uint8_t i = 0; i < NUM_ACTUATORS; i++) {
+    for (uint8_t i = 0; i < NUM_ACTUATORS_COAX; i++) {
+        if (i == 0 || i == 3) continue;
         SRV_Channels::set_angle(SRV_Channels::get_motor_function(i), AP_MOTORS_COAX_SERVO_INPUT_RANGE);
     }
 
@@ -57,9 +58,17 @@ void AP_MotorsCoax::set_update_rate(uint16_t speed_hz)
     _speed_hz = speed_hz;
 
     uint32_t mask =
-        1U << AP_MOTORS_MOT_5 |
-        1U << AP_MOTORS_MOT_6 ;
+        1U << AP_MOTORS_MOT_1 |
+        1U << AP_MOTORS_MOT_4 ;
     rc_set_freq(mask, _speed_hz);
+}
+
+bool AP_MotorsCoax::check_coaxrotorstartup_timer_condition(){
+    if (armed()){
+        return ((t_first_groundidle != -1) && (((uint32_t)AP_HAL::millis() - t_first_groundidle) >= (uint32_t)_time_betw_rotor_startups));
+    } else {
+        return false;
+    }
 }
 
 void AP_MotorsCoax::output_to_motors()
@@ -81,6 +90,7 @@ void AP_MotorsCoax::output_to_motors()
         // gcs().send_text(MAV_SEVERITY_INFO,"Dans le way si");
         shutdown_spoolstate_tracker = 0;
         t_first = -1;
+        t_first_groundidle = -1;
 
     }
 
@@ -98,45 +108,69 @@ void AP_MotorsCoax::output_to_motors()
         case SpoolState::SHUT_DOWN:
             // sends minimum values out to the motors
             t_first = -1;
-            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) { 
+            for (uint8_t i = 0; i < NUM_ACTUATORS_COAX; i++) {
+                if (i == 0 || i == 3) continue; 
                 rc_write_angle(AP_MOTORS_MOT_1 + i, _keep_servo_trim * _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE); 
             }
             // gcs().send_text(MAV_SEVERITY_INFO, "_actuator0_out: %.2f", _actuator_out[0]);
             // gcs().send_text(MAV_SEVERITY_INFO, "_actuator1_out: %.2f", _actuator_out[1]);
 
-            rc_write(AP_MOTORS_MOT_5, output_to_pwm(0));
-            rc_write(AP_MOTORS_MOT_6, output_to_pwm(0));
+            rc_write(AP_MOTORS_MOT_1, output_to_pwm(0));
+            rc_write(AP_MOTORS_MOT_4, output_to_pwm(0));
             break;
         case SpoolState::GROUND_IDLE: 
         // sends output to motors when armed but not flying
-            // t_first = AP_HAL::millis(); // record the first time the rotors are commanded a non-zero throttle after SHUT_DOWN spool_state
-
-            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) {
+            t_first_groundidle = AP_HAL::millis(); // record the first time the rotors are commanded a non-zero throttle after SHUT_DOWN spool_state
+            for (uint8_t i = 0; i < NUM_ACTUATORS_COAX; i++) {
+                if (i == 0 || i == 3) continue;
                 rc_write_angle(AP_MOTORS_MOT_1 + i, _keep_servo_trim * _spin_up_ratio * _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
             }
-            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_5], actuator_spin_up_to_ground_idle());
-            rc_write(AP_MOTORS_MOT_5, output_to_pwm(_actuator[AP_MOTORS_MOT_5]));
-            rc_write(AP_MOTORS_MOT_6, output_to_pwm(0)); // send zero throttle to motor 6 (i.e., 2nd motor)
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_1], actuator_spin_up_to_ground_idle());
+            if (check_coaxrotorstartup_timer_condition()){
+                set_actuator_with_slew(_actuator[AP_MOTORS_MOT_4], actuator_spin_up_to_ground_idle()); // THIS IS WHERE THE DELAY APPLIES
+            }
+            rc_write(AP_MOTORS_MOT_1, output_to_pwm(_actuator[AP_MOTORS_MOT_1]));
+            if (check_coaxrotorstartup_timer_condition()){
+                rc_write(AP_MOTORS_MOT_4, output_to_pwm(_actuator[AP_MOTORS_MOT_4])); // send zero throttle to motor 6 (i.e., 2nd motor)
+            } else {
+                rc_write(AP_MOTORS_MOT_4, output_to_pwm(0));
+            }
             break;
         case SpoolState::SPOOLING_UP:
             t_first = AP_HAL::millis(); // record the first time the rotors are commanded a non-zero throttle after SHUT_DOWN spool_state
             // set motor output based on thrust requests
-            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) { 
+            for (uint8_t i = 0; i < NUM_ACTUATORS_COAX; i++) { 
+                if (i == 0 || i == 3) continue;
                 rc_write_angle(AP_MOTORS_MOT_1 + i, _keep_servo_trim * _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE); 
             }
-            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_5], thr_lin.thrust_to_actuator(_thrust_yt_ccw));
-            rc_write(AP_MOTORS_MOT_5, output_to_pwm(_actuator[AP_MOTORS_MOT_5]));
-            rc_write(AP_MOTORS_MOT_6, output_to_pwm(0)); // send zero throttle to motor 6 (i.e., lower motor)
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_1], thr_lin.thrust_to_actuator(_thrust_yt_ccw));
+            if (check_coaxrotorstartup_timer_condition()){
+                set_actuator_with_slew(_actuator[AP_MOTORS_MOT_4], thr_lin.thrust_to_actuator(_thrust_yt_cw));
+            }
+            rc_write(AP_MOTORS_MOT_1, output_to_pwm(_actuator[AP_MOTORS_MOT_1]));
+            if (check_coaxrotorstartup_timer_condition()){
+                rc_write(AP_MOTORS_MOT_4, output_to_pwm(_actuator[AP_MOTORS_MOT_4])); // send zero throttle to motor 6 (i.e., lower rotor)
+            } else {
+                rc_write(AP_MOTORS_MOT_4, output_to_pwm(0)); // send zero throttle to motor 6 (i.e., lower rotor)
+            }
             break;
         case SpoolState::THROTTLE_UNLIMITED:
         case SpoolState::SPOOLING_DOWN:
             // set motor output based on thrust requests
-            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) { 
+            for (uint8_t i = 0; i < NUM_ACTUATORS_COAX; i++) { 
+                if (i == 0 || i == 3) continue;
                 rc_write_angle(AP_MOTORS_MOT_1 + i, _keep_servo_trim * _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE); 
             }
-            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_5], thr_lin.thrust_to_actuator(_thrust_yt_ccw));
-            rc_write(AP_MOTORS_MOT_5, output_to_pwm(_actuator[AP_MOTORS_MOT_5]));
-            rc_write(AP_MOTORS_MOT_6, output_to_pwm(0)); // send zero throttle to motor 6 (i.e., lower motor)
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_1], thr_lin.thrust_to_actuator(_thrust_yt_ccw));
+            if (check_coaxrotorstartup_timer_condition()){
+                set_actuator_with_slew(_actuator[AP_MOTORS_MOT_4], thr_lin.thrust_to_actuator(_thrust_yt_cw));
+            }
+            rc_write(AP_MOTORS_MOT_1, output_to_pwm(_actuator[AP_MOTORS_MOT_1]));
+            if (check_coaxrotorstartup_timer_condition()){
+                rc_write(AP_MOTORS_MOT_4, output_to_pwm(_actuator[AP_MOTORS_MOT_4])); // send zero throttle to motor 6 (i.e., lower rotor)
+            } else {
+                rc_write(AP_MOTORS_MOT_4, output_to_pwm(0)); // send zero throttle to motor 6 (i.e., lower rotor)
+            }
             break;
         }
 
@@ -147,35 +181,38 @@ void AP_MotorsCoax::output_to_motors()
         case SpoolState::SHUT_DOWN:
             // sends minimum values out to the motors
             // t_first = -1;
-            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) { 
+            for (uint8_t i = 0; i < NUM_ACTUATORS_COAX; i++) { 
+                if (i == 0 || i == 3) continue;
                 rc_write_angle(AP_MOTORS_MOT_1 + i, _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE); 
             }
-            rc_write(AP_MOTORS_MOT_5, output_to_pwm(0));
-            rc_write(AP_MOTORS_MOT_6, output_to_pwm(0));
+            rc_write(AP_MOTORS_MOT_1, output_to_pwm(0));
+            rc_write(AP_MOTORS_MOT_4, output_to_pwm(0));
             break;
         case SpoolState::GROUND_IDLE:
             // sends output to motors when armed but not flying
             // t_first = AP_HAL::millis(); // record the first time the rotors are commanded a non-zero throttle after SHUT_DOWN spool_state
 
-            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) {
+            for (uint8_t i = 0; i < NUM_ACTUATORS_COAX; i++) {
+                if (i == 0 || i == 3) continue;
                 rc_write_angle(AP_MOTORS_MOT_1 + i, _spin_up_ratio * _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
             }
-            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_5], actuator_spin_up_to_ground_idle());
-            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_6], actuator_spin_up_to_ground_idle());
-            rc_write(AP_MOTORS_MOT_5, output_to_pwm(_actuator[AP_MOTORS_MOT_5]));
-            rc_write(AP_MOTORS_MOT_6, output_to_pwm(0));// send zero throttle to motor 6 (i.e., lower motor) if we're still in ground idle spoolstate mode even though vehicle is armed because you want enough rpm to make sure that when you spin upper rotor, it totally spins straight such that lower rotor has no chance of hitting it
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_1], actuator_spin_up_to_ground_idle());
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_4], actuator_spin_up_to_ground_idle());
+            rc_write(AP_MOTORS_MOT_1, output_to_pwm(_actuator[AP_MOTORS_MOT_1]));
+            rc_write(AP_MOTORS_MOT_4, output_to_pwm(_actuator[AP_MOTORS_MOT_4]));// send zero throttle to motor 6 (i.e., lower motor) if we're still in ground idle spoolstate mode even though vehicle is armed because you want enough rpm to make sure that when you spin upper rotor, it totally spins straight such that lower rotor has no chance of hitting it
             break;
         case SpoolState::SPOOLING_UP:
         case SpoolState::THROTTLE_UNLIMITED:
         case SpoolState::SPOOLING_DOWN:
             // set motor output based on thrust requests
-            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) {
+            for (uint8_t i = 0; i < NUM_ACTUATORS_COAX; i++) {
+                if (i == 0 || i == 3) continue;
                 rc_write_angle(AP_MOTORS_MOT_1 + i, _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
             }
-            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_5], thr_lin.thrust_to_actuator(_thrust_yt_ccw));
-            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_6], thr_lin.thrust_to_actuator(_thrust_yt_cw));
-            rc_write(AP_MOTORS_MOT_5, output_to_pwm(_actuator[AP_MOTORS_MOT_5]));
-            rc_write(AP_MOTORS_MOT_6, output_to_pwm(_actuator[AP_MOTORS_MOT_6]));
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_1], thr_lin.thrust_to_actuator(_thrust_yt_ccw));
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_4], thr_lin.thrust_to_actuator(_thrust_yt_cw));
+            rc_write(AP_MOTORS_MOT_1, output_to_pwm(_actuator[AP_MOTORS_MOT_1]));
+            rc_write(AP_MOTORS_MOT_4, output_to_pwm(_actuator[AP_MOTORS_MOT_4]));
             break;
         }
 
@@ -189,33 +226,36 @@ void AP_MotorsCoax::output_to_motors()
             // rc_write_angle(AP_MOTORS_MOT_2, _pitch_radio_passthrough * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
             // rc_write_angle(AP_MOTORS_MOT_3, -_roll_radio_passthrough * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
             // rc_write_angle(AP_MOTORS_MOT_4, -_pitch_radio_passthrough * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
-            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) { 
+            for (uint8_t i = 0; i < NUM_ACTUATORS_COAX; i++) { 
+                if (i == 0 || i == 3) continue;
                 rc_write_angle(AP_MOTORS_MOT_1 + i, _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE); 
             }
-            rc_write(AP_MOTORS_MOT_5, output_to_pwm(0));
-            rc_write(AP_MOTORS_MOT_6, output_to_pwm(0));
+            rc_write(AP_MOTORS_MOT_1, output_to_pwm(0));
+            rc_write(AP_MOTORS_MOT_4, output_to_pwm(0));
             break;
         case SpoolState::GROUND_IDLE:
             // sends output to motors when armed but not flying
-            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) {
+            for (uint8_t i = 0; i < NUM_ACTUATORS_COAX; i++) {
+                if (i == 0 || i == 3) continue;
                 rc_write_angle(AP_MOTORS_MOT_1 + i, _spin_up_ratio * _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
             }
-            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_5], actuator_spin_up_to_ground_idle());
-            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_6], actuator_spin_up_to_ground_idle());
-            rc_write(AP_MOTORS_MOT_5, output_to_pwm(_actuator[AP_MOTORS_MOT_5]));
-            rc_write(AP_MOTORS_MOT_6, output_to_pwm(_actuator[AP_MOTORS_MOT_6]));
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_1], actuator_spin_up_to_ground_idle());
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_4], actuator_spin_up_to_ground_idle());
+            rc_write(AP_MOTORS_MOT_1, output_to_pwm(_actuator[AP_MOTORS_MOT_1]));
+            rc_write(AP_MOTORS_MOT_4, output_to_pwm(_actuator[AP_MOTORS_MOT_4]));
             break;
         case SpoolState::SPOOLING_UP:
         case SpoolState::THROTTLE_UNLIMITED:
         case SpoolState::SPOOLING_DOWN:
             // set motor output based on thrust requests
-            for (uint8_t i = 0; i < NUM_ACTUATORS; i++) {
+            for (uint8_t i = 0; i < NUM_ACTUATORS_COAX; i++) {
+                if (i == 0 || i == 3) continue;
                 rc_write_angle(AP_MOTORS_MOT_1 + i, _actuator_out[i] * AP_MOTORS_COAX_SERVO_INPUT_RANGE);
             }
-            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_5], thr_lin.thrust_to_actuator(_thrust_yt_ccw));
-            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_6], thr_lin.thrust_to_actuator(_thrust_yt_cw));
-            rc_write(AP_MOTORS_MOT_5, output_to_pwm(_actuator[AP_MOTORS_MOT_5]));
-            rc_write(AP_MOTORS_MOT_6, output_to_pwm(_actuator[AP_MOTORS_MOT_6]));
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_1], thr_lin.thrust_to_actuator(_thrust_yt_ccw));
+            set_actuator_with_slew(_actuator[AP_MOTORS_MOT_4], thr_lin.thrust_to_actuator(_thrust_yt_cw));
+            rc_write(AP_MOTORS_MOT_1, output_to_pwm(_actuator[AP_MOTORS_MOT_1]));
+            rc_write(AP_MOTORS_MOT_4, output_to_pwm(_actuator[AP_MOTORS_MOT_4]));
             break;
         }
     }
@@ -227,8 +267,8 @@ void AP_MotorsCoax::output_to_motors()
 uint32_t AP_MotorsCoax::get_motor_mask()
 {
     uint32_t motor_mask =
-        1U << AP_MOTORS_MOT_5 |
-        1U << AP_MOTORS_MOT_6;
+        1U << AP_MOTORS_MOT_1 |
+        1U << AP_MOTORS_MOT_4;
     uint32_t mask = motor_mask_to_srv_channel_mask(motor_mask);
 
     // add parent's mask
@@ -332,28 +372,28 @@ void AP_MotorsCoax::output_armed_stabilizing()
     // static thrust is proportional to the airflow velocity squared
     // therefore the torque of the roll and pitch actuators should be approximately proportional to
     // the angle of attack multiplied by the static thrust.
-    _actuator_out[0] = roll_thrust * _scale_servo_output; // / thrust_out_actuator;
-    _actuator_out[1] = pitch_thrust * _scale_servo_output; // / thrust_out_actuator;
+    _actuator_out[1] = roll_thrust * _scale_servo_output; // / thrust_out_actuator;
+    _actuator_out[2] = pitch_thrust * _scale_servo_output; // / thrust_out_actuator;
 
     // limit roll and pitch commands if absolute value is greater than maximum which is 1
-    if (fabsf(_actuator_out[0]) > 1.0f) {
-        limit.roll = true;
-        _actuator_out[0] = constrain_float(_actuator_out[0], -1.0f, 1.0f);
-    }
     if (fabsf(_actuator_out[1]) > 1.0f) {
-        limit.pitch = true;
+        limit.roll = true;
         _actuator_out[1] = constrain_float(_actuator_out[1], -1.0f, 1.0f);
+    }
+    if (fabsf(_actuator_out[2]) > 1.0f) {
+        limit.pitch = true;
+        _actuator_out[2] = constrain_float(_actuator_out[2], -1.0f, 1.0f);
     }
     
     // Limit roll and pitch actuator outputs at the beginning of the launch
     if (launch_detected == 1){
         _actuator_out[1] = constrain_float(_actuator_out[1], -roll_actuator_limit, roll_actuator_limit);
-        _actuator_out[0] = constrain_float(_actuator_out[0], -pitch_actuator_limit, pitch_actuator_limit);
+        _actuator_out[2] = constrain_float(_actuator_out[2], -pitch_actuator_limit, pitch_actuator_limit);
     }
     // gcs().send_text(MAV_SEVERITY_INFO, "a0, a1, yt: %d, %.2f, %.2f, %.2f", launch_detected, _actuator_out[0], _actuator_out[1], yaw_thrust);
     
-    _actuator_out[2] = -_actuator_out[0];
-    _actuator_out[3] = -_actuator_out[1];
+    _actuator_out[4] = -_actuator_out[1];
+    _actuator_out[5] = -_actuator_out[2];
 }
 
 // output_test_seq - spin a motor at the pwm value specified
