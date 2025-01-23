@@ -19,9 +19,10 @@ bool ModeThrow::init(bool ignore_checks)
     stage = Throw_Disarmed;
     nextmode_attempted = false;
 
+    /*
     // initialise pos controller speed and acceleration
     pos_control->set_max_speed_accel_xy(wp_nav->get_default_speed_xy(), BRAKE_MODE_DECEL_RATE);
-    pos_control->set_correction_speed_accel_xy(wp_nav->get_default_speed_xy(), BRAKE_MODE_DECEL_RATE);
+    pos_control->set_correction_speed_accel_xy(wp_nav->get_default_speed_xy(), BRAKE_MODE_DECEL_RATE);*/
 
     // set vertical speed and acceleration limits
     pos_control->set_max_speed_accel_z(BRAKE_MODE_SPEED_Z, BRAKE_MODE_SPEED_Z, BRAKE_MODE_DECEL_RATE);
@@ -76,7 +77,6 @@ void ModeThrow::run()
         } else {
             pos_control->set_pos_target_z_cm(inertial_nav.get_position_z_up_cm() + 300);
         }
-
         // Set the auto_arm status to true to avoid a possible automatic disarm caused by selection of an auto mode with throttle at minimum
         copter.set_auto_armed(true);
 
@@ -85,11 +85,11 @@ void ModeThrow::run()
         stage = Throw_PosHold;
 
         // initialise position controller
-        pos_control->init_xy_controller();
+        // pos_control->init_xy_controller();
 
         // Set the auto_arm status to true to avoid a possible automatic disarm caused by selection of an auto mode with throttle at minimum
         copter.set_auto_armed(true);
-    } else if (stage == Throw_PosHold && throw_position_good()) {
+    } else if (stage == Throw_PosHold){ // && throw_position_good()) {
         if (!nextmode_attempted) {
             switch ((Mode::Number)g2.throw_nextmode.get()) {
                 case Mode::Number::AUTO:
@@ -160,8 +160,8 @@ void ModeThrow::run()
         // demand a level roll/pitch attitude with zero yaw rate
         attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(0.0f, 0.0f, 0.0f);
 
-        // output 50% throttle and turn off angle boost to maximise righting moment
-        attitude_control->set_throttle_out(0.5f, false, g.throttle_filt);
+        // output 70% throttle and turn off angle boost to maximise righting moment
+        attitude_control->set_throttle_out(0.7f, false, g.throttle_filt);
 
         break;
 
@@ -184,11 +184,12 @@ void ModeThrow::run()
         // set motors to full range
         motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
 
+        /*
         // use position controller to stop
         Vector2f vel;
         Vector2f accel;
         pos_control->input_vel_accel_xy(vel, accel);
-        pos_control->update_xy_controller();
+        pos_control->update_xy_controller();*/
 
         // call attitude controller
         attitude_control->input_thrust_vector_rate_heading(pos_control->get_thrust_vector(), 0.0f);
@@ -251,6 +252,7 @@ void ModeThrow::run()
 
 bool ModeThrow::throw_detected()
 {
+    /*
     // Check that we have a valid navigation solution
     nav_filter_status filt_status = inertial_nav.get_filter_status();
     if (!filt_status.flags.attitude || !filt_status.flags.horiz_pos_abs || !filt_status.flags.vert_pos) {
@@ -300,7 +302,9 @@ bool ModeThrow::throw_detected()
     bool throw_condition_confirmed = ((AP_HAL::millis() - free_fall_start_ms < 500) && ((inertial_nav.get_velocity_z_up_cms() - free_fall_start_velz) < -250.0f));
 
     // start motors and enter the control mode if we are in continuous freefall
-    return throw_condition_confirmed;
+    return throw_condition_confirmed; */
+
+    return ahrs.get_accel_ef().z <= -10 * GRAVITY_MSS;
 }
 
 bool ModeThrow::throw_attitude_good() const
@@ -319,7 +323,7 @@ bool ModeThrow::throw_height_good() const
 bool ModeThrow::throw_position_good() const
 {
     // check that our horizontal position error is within 50cm
-    return (pos_control->get_pos_error_xy_cm() < 50.0f);
+    return (stage == Throw_PosHold); //(pos_control->get_pos_error_xy_cm() < 50.0f);
 }
 
 #endif
