@@ -8,6 +8,9 @@
 // should be called at 100hz or more
 void ModeStabilize::run()
 {
+    // handles scenario where we switch to stabilize mode from coaxlauchmanual mode
+    motors->set_launch_detected(0);
+    
     // apply simple mode transform to pilot inputs
     update_simple_mode();
 
