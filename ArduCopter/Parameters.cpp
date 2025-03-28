@@ -712,6 +712,14 @@ const AP_Param::Info Copter::var_info[] = {
     // @Units: m
     // @User: Advanced
     GSCALAR(throw_altitude_max, "THROW_ALT_MAX", 0),
+
+    // @Param: DT_FOR_THROTT
+    // @DisplayName: Amount of time in ms after launch before throttle input is given
+    // @Description: Amount of time in ms after launch before throttle input is given
+    // @Units: milliseconds
+    // @User: Advanced
+    GSCALAR(time_difference_for_throttle, "DT_FOR_THROTT", 500),
+
 #endif
 
 #if OSD_ENABLED || OSD_PARAM_ENABLED

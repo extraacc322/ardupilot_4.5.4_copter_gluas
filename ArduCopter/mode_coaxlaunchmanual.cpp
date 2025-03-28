@@ -142,6 +142,8 @@ void ModeCoaxLaunchManual::launch_detected(){
                 gcs().send_text(MAV_SEVERITY_INFO,"LAUNCH OVER");
                 gcs().send_text(MAV_SEVERITY_INFO,"t_first, t_now: %ld, %ld", t_first_, AP_HAL::millis());
                 launch_over_msg_sent = true;
+                // set_mode((Mode::Number)g2.throw_nextmode.get(), ModeReason::THROW_COMPLETE);
+
             }
         }
     }

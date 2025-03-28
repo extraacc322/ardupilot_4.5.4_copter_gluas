@@ -52,7 +52,7 @@ void ModeThrow::run()
         stage = Throw_Detecting;
 
     } else if (stage == Throw_Detecting && throw_detected()){
-        gcs().send_text(MAV_SEVERITY_INFO,"throw detected - spooling motors");
+        gcs().send_text(MAV_SEVERITY_INFO,"throw detected - waiting for %.2f seconds", (float)(g.time_difference_for_throttle/1000));
         copter.set_land_complete(false);
         stage = Throw_Wait_Throttle_Unlimited;
 
@@ -61,52 +61,56 @@ void ModeThrow::run()
 
     } else if (stage == Throw_Wait_Throttle_Unlimited &&
                motors->get_spool_state() == AP_Motors::SpoolState::THROTTLE_UNLIMITED) {
-        gcs().send_text(MAV_SEVERITY_INFO,"throttle is unlimited - uprighting");
-        stage = Throw_Uprighting;
-    } else if (stage == Throw_Uprighting && throw_attitude_good()) {
-        gcs().send_text(MAV_SEVERITY_INFO,"uprighted - controlling height");
-        stage = Throw_HgtStabilise;
-
-        // initialise the z controller
-        pos_control->init_z_controller_no_descent();
-
-        // initialise the demanded height to 3m above the throw height
-        // we want to rapidly clear surrounding obstacles
-        if (g2.throw_type == ThrowType::Drop) {
-            pos_control->set_pos_target_z_cm(inertial_nav.get_position_z_up_cm() - 100);
-        } else {
-            pos_control->set_pos_target_z_cm(inertial_nav.get_position_z_up_cm() + 300);
+        if ((AP_HAL::millis() - time_since_launch) >= g.time_difference_for_throttle) {
+            gcs().send_text(MAV_SEVERITY_INFO,"throttle is unlimited - waiting for uprighting");
+            gcs().send_text(MAV_SEVERITY_INFO,"spooling motors");
+            stage = Throw_Uprighting;
         }
-        // Set the auto_arm status to true to avoid a possible automatic disarm caused by selection of an auto mode with throttle at minimum
-        copter.set_auto_armed(true);
 
-    } else if (stage == Throw_HgtStabilise && throw_height_good()) {
-        gcs().send_text(MAV_SEVERITY_INFO,"height achieved - controlling position");
-        stage = Throw_PosHold;
+    } // else if (stage == Throw_Uprighting && throw_attitude_good() && ((AP_HAL::millis() - time_since_launch) >= 10000)) {
+    //     gcs().send_text(MAV_SEVERITY_INFO,"uprighted - controlling height");
+    //     stage = Throw_HgtStabilise;
 
-        // initialise position controller
-        // pos_control->init_xy_controller();
+    //     // initialise the z controller
+    //     pos_control->init_z_controller_no_descent();
 
-        // Set the auto_arm status to true to avoid a possible automatic disarm caused by selection of an auto mode with throttle at minimum
-        copter.set_auto_armed(true);
-    } else if (stage == Throw_PosHold){ // && throw_position_good()) {
-        if (!nextmode_attempted) {
-            switch ((Mode::Number)g2.throw_nextmode.get()) {
-                case Mode::Number::AUTO:
-                case Mode::Number::GUIDED:
-                case Mode::Number::RTL:
-                case Mode::Number::LAND:
-                case Mode::Number::BRAKE:
-                case Mode::Number::LOITER:
-                    set_mode((Mode::Number)g2.throw_nextmode.get(), ModeReason::THROW_COMPLETE);
-                    break;
-                default:
-                    // do nothing
-                    break;
-            }
-            nextmode_attempted = true;
-        }
-    }
+    //     // initialise the demanded height to 3m above the throw height
+    //     // we want to rapidly clear surrounding obstacles
+    //     if (g2.throw_type == ThrowType::Drop) {
+    //         pos_control->set_pos_target_z_cm(inertial_nav.get_position_z_up_cm() - 100);
+    //     } else {
+    //         pos_control->set_pos_target_z_cm(inertial_nav.get_position_z_up_cm() + 300);
+    //     }
+    //     // Set the auto_arm status to true to avoid a possible automatic disarm caused by selection of an auto mode with throttle at minimum
+    //     copter.set_auto_armed(true);
+
+    // } // else if (stage == Throw_HgtStabilise && throw_height_good()) {
+    //     gcs().send_text(MAV_SEVERITY_INFO,"height achieved - controlling position");
+    //     stage = Throw_PosHold;
+
+    //     // initialise position controller
+    //     // pos_control->init_xy_controller();
+
+    //     // Set the auto_arm status to true to avoid a possible automatic disarm caused by selection of an auto mode with throttle at minimum
+    //     copter.set_auto_armed(true);
+    // } else if (stage == Throw_PosHold){ // && throw_position_good()) {
+    //     if (!nextmode_attempted) {
+    //         switch ((Mode::Number)g2.throw_nextmode.get()) {
+    //             case Mode::Number::AUTO:
+    //             case Mode::Number::GUIDED:
+    //             case Mode::Number::RTL:
+    //             case Mode::Number::LAND:
+    //             case Mode::Number::BRAKE:
+    //             case Mode::Number::LOITER:
+    //                 set_mode((Mode::Number)g2.throw_nextmode.get(), ModeReason::THROW_COMPLETE);
+    //                 break;
+    //             default:
+    //                 // do nothing
+    //                 break;
+    //         }
+    //         nextmode_attempted = true;
+    //     }
+    // }
 
     // Throw State Processing
     switch (stage) {
@@ -161,7 +165,7 @@ void ModeThrow::run()
         attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(0.0f, 0.0f, 0.0f);
 
         // output 70% throttle and turn off angle boost to maximise righting moment
-        attitude_control->set_throttle_out(0.7f, false, g.throttle_filt);
+        attitude_control->set_throttle_out(0.35f, false, g.throttle_filt);
 
         break;
 
@@ -303,8 +307,9 @@ bool ModeThrow::throw_detected()
 
     // start motors and enter the control mode if we are in continuous freefall
     return throw_condition_confirmed; */
-
-    return ahrs.get_accel_ef().z <= -10 * GRAVITY_MSS;
+    // gcs().send_text(MAV_SEVERITY_INFO, "z_acceleration: %.3f", ahrs.get_accel_ef().z);
+    // check for upwards or downwards trajectory (airdrop) of 50cm/s
+    return fabsf(ahrs.get_accel_ef().z) >= 10 * GRAVITY_MSS;
 }
 
 bool ModeThrow::throw_attitude_good() const

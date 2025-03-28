@@ -1740,6 +1740,7 @@ private:
     bool nextmode_attempted;
     uint32_t free_fall_start_ms;    // system time free fall was detected
     float free_fall_start_velz;     // vertical velocity when free fall was detected
+    uint32_t time_since_launch;    // time since launch in ms
 };
 
 #if MODE_TURTLE_ENABLED == ENABLED
