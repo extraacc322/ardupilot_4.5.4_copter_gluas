@@ -461,6 +461,9 @@ protected:
     // rate controller input smoothing time constant
     AP_Float            _input_tc;
 
+    // Use sqrt controller
+    AP_Int8            _use_sqrt_ctrl_param;
+
     // Intersampling period in seconds
     float               _dt;
 
