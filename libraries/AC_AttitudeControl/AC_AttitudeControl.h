@@ -165,6 +165,8 @@ public:
 
     // Command an euler roll and pitch angle and an euler yaw rate with angular velocity feedforward and smoothing
     virtual void input_euler_angle_roll_pitch_euler_rate_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_rate_cds);
+    // Command an euler roll and pitch angle and an body frame yaw rate with angular velocity feedforward and smoothing
+    virtual void input_euler_angle_roll_pitch_bf_rate_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float yaw_rate_bf_cds);
     // Command an euler roll, pitch and yaw angle with angular velocity feedforward and smoothing
     virtual void input_euler_angle_roll_pitch_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_angle_cd, bool slew_yaw);
 
@@ -330,6 +332,11 @@ public:
 
     // Calculates the body frame angular velocities to follow the target attitude
     void attitude_controller_run_quat();
+
+    // Calculates the roll and pitch body frame angular velocities to follow the target euler roll and pitch attitude
+    // set heading to current heading
+    // pass pilot commanded yaw rate into inner loop
+    void euler_pitch_roll_controller_run_quat_with_bf_yaw_rate();
 
     // thrust_heading_rotation_angles - calculates two ordered rotations to move the attitude_body quaternion to the attitude_target quaternion.
     // The maximum error in the yaw axis is limited based on the angle yaw P value and acceleration.

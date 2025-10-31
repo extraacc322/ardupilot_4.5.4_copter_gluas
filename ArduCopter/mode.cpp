@@ -1024,6 +1024,7 @@ float Mode::get_pilot_desired_yaw_rate(float yaw_in)
         return 0.0f;
     }
 
+    // gcs().send_text(MAV_SEVERITY_INFO, "RATE: %.2f", g2.command_model_pilot.get_rate());
     // convert pilot input to the desired yaw rate
     return g2.command_model_pilot.get_rate() * 100.0 * input_expo(yaw_in, g2.command_model_pilot.get_expo());
 }

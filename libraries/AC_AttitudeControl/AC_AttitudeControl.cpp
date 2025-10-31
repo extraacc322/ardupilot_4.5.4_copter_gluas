@@ -2,7 +2,7 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 #include <AP_Scheduler/AP_Scheduler.h>
-// #include <GCS_MAVLink/GCS.h>
+#include <GCS_MAVLink/GCS.h>
 
 
 extern const AP_HAL::HAL& hal;
@@ -328,6 +328,40 @@ void AC_AttitudeControl::input_euler_angle_roll_pitch_euler_rate_yaw(float euler
     attitude_controller_run_quat();
 }
 
+
+// Command an euler roll and pitch angle and an euler yaw rate with angular velocity feedforward and smoothing
+void AC_AttitudeControl::input_euler_angle_roll_pitch_bf_rate_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float yaw_rate_bf_cds)
+{
+    // Convert from centidegrees on public interface to radians
+    float euler_roll_angle = radians(euler_roll_angle_cd * 0.01f);
+    float euler_pitch_angle = radians(euler_pitch_angle_cd * 0.01f);
+    float yaw_rate_rads = radians(yaw_rate_bf_cds * 0.01f);
+
+    // calculate the attitude target euler angles
+    _attitude_target.to_euler(_euler_angle_target);
+
+    // Add roll trim to compensate tail rotor thrust in heli (will return zero on multirotors)
+    euler_roll_angle += get_roll_trim_rad();
+    
+    // When feedforward is not enabled, the target euler angle is input into the target and the feedforward rate is zeroed.
+    _euler_angle_target.x = euler_roll_angle;
+    _euler_angle_target.y = euler_pitch_angle;
+
+    // Compute quaternion target attitude using desired roll/pitch and current yaw
+    _attitude_target.from_euler(_euler_angle_target.x, _euler_angle_target.y, _euler_angle_target.z);
+
+    // Set rate feedforward requests to zero
+    _euler_rate_target.zero();
+    _ang_vel_target.zero();
+
+    // Store body-frame yaw rate directly
+    _ang_vel_target.z = yaw_rate_rads;
+    
+    // Call quaternion attitude controller
+    euler_pitch_roll_controller_run_quat_with_bf_yaw_rate();
+}
+
+
 // Command an euler roll, pitch and yaw angle with angular velocity feedforward and smoothing
 void AC_AttitudeControl::input_euler_angle_roll_pitch_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_angle_cd, bool slew_yaw)
 {
@@ -484,6 +518,7 @@ void AC_AttitudeControl::input_rate_bf_roll_pitch_yaw_2(float roll_rate_bf_cds, 
     // Update the unused targets attitude based on current attitude to condition mode change
     _ahrs.get_quat_body_to_ned(_attitude_target);
     _attitude_target.to_euler(_euler_angle_target);
+
     // Convert body-frame angular velocity into euler angle derivative of desired attitude
     ang_vel_to_euler_rate(_euler_angle_target, _ang_vel_target, _euler_rate_target);
     _ang_vel_body = _ang_vel_target;
@@ -731,6 +766,7 @@ void AC_AttitudeControl::attitude_controller_run_quat()
     _ang_vel_body = update_ang_vel_target_from_att_error(attitude_error);
 
     // ensure angular velocity does not go over configured limits
+    // gcs().send_text(MAV_SEVERITY_INFO, "RATE: %.2f, %.2f", float(degrees(_ang_vel_body.z)), float(_ang_vel_yaw_max));
     ang_vel_limit(_ang_vel_body, radians(_ang_vel_roll_max), radians(_ang_vel_pitch_max), radians(_ang_vel_yaw_max));
 
     // rotation from the target frame to the body frame
@@ -760,6 +796,37 @@ void AC_AttitudeControl::attitude_controller_run_quat()
         _attitude_target = _attitude_target * attitude_target_update;
     }
 
+    // ensure Quaternion stay normalised
+    _attitude_target.normalize();
+
+    // Record error to handle EKF resets
+    _attitude_ang_error = attitude_body.inverse() * _attitude_target;
+}
+
+// Calculates the roll and pitch body frame angular velocities to follow the target euler roll and pitch attitude
+// set heading to current heading
+// pass pilot commanded yaw rate into inner loop
+void AC_AttitudeControl::euler_pitch_roll_controller_run_quat_with_bf_yaw_rate()
+{
+    // This represents a quaternion rotation in NED frame to the body
+    Quaternion attitude_body;
+    _ahrs.get_quat_body_to_ned(attitude_body);
+
+    // This vector represents the angular error to rotate the thrust vector using x and y and heading using z
+    Vector3f attitude_error;
+    thrust_heading_rotation_angles(_attitude_target, attitude_body, attitude_error, _thrust_angle, _thrust_error_angle);
+
+    // Compute the angular velocity corrections in the body frame from the attitude error
+    _ang_vel_body = update_ang_vel_target_from_att_error(attitude_error);
+
+    // Override yaw correction with direct body-frame yaw rate
+    _ang_vel_body.z = _ang_vel_target.z;
+
+    // ensure angular velocity does not go over configured limits
+    // gcs().send_text(MAV_SEVERITY_INFO, "RATE: %.2f, %.2f", float(degrees(_ang_vel_body.z)), float(_ang_vel_yaw_max));
+    ang_vel_limit(_ang_vel_body, radians(_ang_vel_roll_max), radians(_ang_vel_pitch_max), radians(_ang_vel_yaw_max));
+
+    // gcs().send_text(MAV_SEVERITY_INFO, "RATE: %.2f, %.2f", float(degrees(_ang_vel_body.z)), float(_ang_vel_yaw_max));
     // ensure Quaternion stay normalised
     _attitude_target.normalize();
 

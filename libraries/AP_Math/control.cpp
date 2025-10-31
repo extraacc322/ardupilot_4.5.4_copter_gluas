@@ -23,6 +23,8 @@
 #include "vector2.h"
 #include "vector3.h"
 #include <AP_InternalError/AP_InternalError.h>
+#include <GCS_MAVLink/GCS.h>
+
 
 // control default definitions
 #define CORNER_ACCELERATION_RATIO   1.0/safe_sqrt(2.0)   // acceleration reduction to enable zero overshoot corners
@@ -416,6 +418,7 @@ float sqrt_controller(float error, float p, float second_ord_lim, float dt)
     } else {
         // Both the P and second order limit have been defined.
         const float linear_dist = second_ord_lim / sq(p);
+        // gcs().send_text(MAV_SEVERITY_INFO, "RATE: %.2f, %.2f", float(degrees(second_ord_lim)), float(sq(p)));
         if (error > linear_dist) {
             correction_rate = safe_sqrt(2.0 * second_ord_lim * (error - (linear_dist / 2.0)));
         } else if (error < -linear_dist) {
@@ -426,6 +429,7 @@ float sqrt_controller(float error, float p, float second_ord_lim, float dt)
     }
     if (is_positive(dt)) {
         // this ensures we do not get small oscillations by over shooting the error correction in the last time step.
+        // gcs().send_text(MAV_SEVERITY_INFO, "RATE: %.2f, %.2f", float(degrees(correction_rate)), float(error));
         return constrain_float(correction_rate, -fabsf(error) / dt, fabsf(error) / dt);
     } else {
         return correction_rate;
