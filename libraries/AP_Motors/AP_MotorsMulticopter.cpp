@@ -18,6 +18,7 @@
 #include <AP_BattMonitor/AP_BattMonitor.h>
 #include <SRV_Channel/SRV_Channel.h>
 #include <AP_Logger/AP_Logger.h>
+#include <GCS_MAVLink/GCS.h>
 
 #include <AP_Vehicle/AP_Vehicle_Type.h>
 #if APM_BUILD_TYPE(APM_BUILD_ArduPlane)
@@ -334,6 +335,7 @@ void AP_MotorsMulticopter::output()
 
     // check for any external limit flags
     update_external_limits();
+
 
 };
 
@@ -713,7 +715,7 @@ void AP_MotorsMulticopter::output_logic()
 
         // set and increment ramp variables
         _spin_up_ratio = 1.0f;
-        _throttle_thrust_max = get_current_limit_max_throttle();
+        _throttle_thrust_max = 1.0f;  //get_current_limit_max_throttle();
 
         if (_thrust_boost && !_thrust_balanced) {
             _thrust_boost_ratio = MIN(1.0, _thrust_boost_ratio + spool_step);

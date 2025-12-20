@@ -71,5 +71,5 @@ void ModeStabilize::run()
     attitude_control->input_euler_angle_roll_pitch_bf_rate_yaw(target_roll, target_pitch, target_yaw_rate);
     
     // output pilot's throttle
-    attitude_control->set_throttle_out(pilot_desired_throttle, true, g.throttle_filt);
+    attitude_control->set_throttle_out(pilot_desired_throttle, false, g.throttle_filt);
 }

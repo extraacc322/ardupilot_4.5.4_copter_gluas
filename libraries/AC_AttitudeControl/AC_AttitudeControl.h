@@ -165,7 +165,7 @@ public:
 
     // Command an euler roll and pitch angle and an euler yaw rate with angular velocity feedforward and smoothing
     virtual void input_euler_angle_roll_pitch_euler_rate_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_rate_cds);
-    // Command an euler roll and pitch angle and an body frame yaw rate with angular velocity feedforward and smoothing
+    // Command an euler roll and pitch angle and a body frame yaw rate without angular velocity feedforward and smoothing
     virtual void input_euler_angle_roll_pitch_bf_rate_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float yaw_rate_bf_cds);
     // Command an euler roll, pitch and yaw angle with angular velocity feedforward and smoothing
     virtual void input_euler_angle_roll_pitch_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_angle_cd, bool slew_yaw);

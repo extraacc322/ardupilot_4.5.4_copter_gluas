@@ -155,7 +155,7 @@ public:
     float               get_yaw() const { return _yaw_in; }
     float               get_yaw_ff() const { return _yaw_in_ff; }
     float               get_throttle_out() const { return _throttle_out; }
-    float               get_throttle() const { return constrain_float(_throttle_filter.get(), 0.0f, 1.0f); }
+    float               get_throttle() const { return _throttle_in;} //constrain_float(_throttle_filter.get(), 0.0f, 1.0f); }
     float               get_throttle_bidirectional() const { return constrain_float(2 * (_throttle_filter.get() - 0.5f), -1.0f, 1.0f); }
     float               get_throttle_slew_rate() const { return _throttle_slew_rate; }
     float               get_forward() const { return _forward_in; }
@@ -179,7 +179,6 @@ public:
     uint8_t             former_spool_state = 100; // store former spool state
     uint8_t             shutdown_spoolstate_tracker = 0; // this parameter is reset to zero every time the vehicle is disarmed. It is used to track the first time the rotors are spun after the vehicle is armed. So, that based on that, the rotor startup sequence can be implemented only once after arming.
     uint32_t            t_first = -1; // records the time when the rotors are first commanded a non-zero throttle after the vehicle is armed. It is set to -1 when the vehicle is disarmed and based on the spool_up _spool_state to make sure that the vehicle completely gets out of that _spool_state before the lower rotor is allowed to spin
-    uint32_t            t_first_groundidle = -1; // records the time when the rotors are first go to ground idle spool state after the vehicle is armed. It is set to -1 when the vehicle is disarmed and based on the ground_idle _spool_state
     // uint32_t            time_for_imu_to_recover_after_launch; // time it takes for imu to recover after launch
     
     // desired spool states

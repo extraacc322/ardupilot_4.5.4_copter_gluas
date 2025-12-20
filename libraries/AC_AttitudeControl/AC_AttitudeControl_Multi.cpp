@@ -361,6 +361,8 @@ void AC_AttitudeControl_Multi::set_throttle_out(float throttle_in, bool apply_an
     }
     _motors.set_throttle(throttle_in);
     _motors.set_throttle_avg_max(get_throttle_avg_max(MAX(throttle_in, _throttle_in)));
+    // gcs().send_text(MAV_SEVERITY_INFO,"throttle in, _throttle_in: %f, %f", throttle_in, _throttle_in);
+
 }
 
 void AC_AttitudeControl_Multi::set_throttle_mix_max(float ratio)
