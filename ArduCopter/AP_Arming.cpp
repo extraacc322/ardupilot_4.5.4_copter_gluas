@@ -203,11 +203,11 @@ bool AP_Arming_Copter::parameter_checks(bool display_failure)
             check_failed(ARMING_CHECK_PARAMETERS, display_failure, "FS_GCS_ENABLE=2 removed, see FS_OPTIONS");
         }
 
-        // lean angle parameter check
-        if (copter.aparm.angle_max < 1000 || copter.aparm.angle_max > 8000) {
-            check_failed(ARMING_CHECK_PARAMETERS, display_failure, "Check ANGLE_MAX");
-            return false;
-        }
+        // // lean angle parameter check
+        // if (copter.aparm.angle_max < 1000 || copter.aparm.angle_max > 8000) {
+        //     check_failed(ARMING_CHECK_PARAMETERS, display_failure, "Check ANGLE_MAX");
+        //     return false;
+        // }
 
         // acro balance parameter check
 #if MODE_ACRO_ENABLED == ENABLED || MODE_SPORT_ENABLED == ENABLED
@@ -597,13 +597,13 @@ bool AP_Arming_Copter::arm_checks(AP_Arming::Method method)
         return true;
     }
 
-    // check lean angle
-    if (check_enabled(ARMING_CHECK_INS)) {
-        if (degrees(acosf(ahrs.cos_roll()*ahrs.cos_pitch()))*100.0f > copter.aparm.angle_max) {
-            check_failed(ARMING_CHECK_INS, true, "Leaning");
-            return false;
-        }
-    }
+    // // check lean angle
+    // if (check_enabled(ARMING_CHECK_INS)) {
+    //     if (degrees(acosf(ahrs.cos_roll()*ahrs.cos_pitch()))*100.0f > copter.aparm.angle_max) {
+    //         check_failed(ARMING_CHECK_INS, true, "Leaning");
+    //         return false;
+    //     }
+    // }
 
     // check adsb
 #if HAL_ADSB_ENABLED
