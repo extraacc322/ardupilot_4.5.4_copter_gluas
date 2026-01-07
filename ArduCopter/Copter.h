@@ -401,6 +401,8 @@ private:
 
     AirMode air_mode; // air mode is 0 = not-configured ; 1 = disabled; 2 = enabled;
     bool force_flying; // force flying is enabled when true;
+    // Throw mode param
+    bool throw_enable_throttle = false; // throwmode: enable throttle input
 
     static_assert(sizeof(uint32_t) == sizeof(ap), "ap_t must be uint32_t");
 

@@ -283,8 +283,11 @@ public:
         SCRIPTING_7 =        306,
         SCRIPTING_8 =        307,
 
+        // throwmode options
+        THROW_ENABL_THR =  308, // throwmode: enable throttle input  
+
         // this must be higher than any aux function above
-        AUX_FUNCTION_MAX =   308,
+        AUX_FUNCTION_MAX =   309,
     };
     typedef enum AUX_FUNC aux_func_t;
 

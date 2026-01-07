@@ -216,7 +216,6 @@ void AP_MotorsCoax::output_armed_stabilizing()
     float   throttle_thrust;            // throttle thrust input value, 0.0 - 1.0
     float   throttle_avg_max;           // throttle thrust average maximum value, 0.0 - 1.0
     float   thrust_out;                 //
-    float   actuator_allowed = 0.0f;    // amount of yaw we can fit in
 
     // apply voltage and air pressure compensation
     // const float compensation_gain = thr_lin.get_compensation_gain();
@@ -237,12 +236,6 @@ void AP_MotorsCoax::output_armed_stabilizing()
     }
 
     throttle_avg_max = constrain_float(throttle_avg_max, throttle_thrust, _throttle_thrust_max);
-
-    actuator_allowed = 2.0f;
-    if (fabsf(yaw_thrust) > actuator_allowed) {
-        yaw_thrust = constrain_float(yaw_thrust, -actuator_allowed, actuator_allowed);
-        limit.yaw = true;
-    }
 
     // calculate the throttle setting
     thrust_out = throttle_avg_max;
@@ -267,11 +260,7 @@ void AP_MotorsCoax::output_armed_stabilizing()
 
     // limit thrust out for calculation of actuator gains
     // float thrust_out_actuator = constrain_float(MAX(_throttle_hover * 0.5f, thrust_out), 0.5f, 1.0f);
-    if (is_zero(thrust_out)) {
-        limit.roll = true;
-        limit.pitch = true;
-    }
-    
+
     // calculate the actuator outputs for roll and pitch
     _actuator_out[1] = roll_thrust * _scale_servo_output; 
     _actuator_out[2] = pitch_thrust * _scale_servo_output;

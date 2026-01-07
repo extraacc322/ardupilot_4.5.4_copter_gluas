@@ -691,6 +691,13 @@ const AP_Param::Info Copter::var_info[] = {
     // @Path: ../libraries/AP_Notify/AP_Notify.cpp
     GOBJECT(notify, "NTF_",  AP_Notify),
 
+    // @Param: Throw mode throttle
+    // @DisplayName: Throw mode throttle
+    // @Description: Throttle setting used by Throw mode after a throw is detected.  This is a value between 0.0 (0%) and 1.0 (100%).
+    // @User: Advanced
+    // @ReadOnly: True
+    GSCALAR(throw_mode_throttle, "THROW_THROTTLE",   0.45f),
+
 #if MODE_THROW_ENABLED == ENABLED
     // @Param: THROW_MOT_START
     // @DisplayName: Start motors before throwing is detected

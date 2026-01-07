@@ -1563,7 +1563,7 @@ protected:
     const char *name4() const override { return "COLM"; }
 
 private:
-    void launch_detected();
+    void check_launch_detected();
     // Tube Launch Parameters
     int16_t climb_rate_launch_mode;
     int16_t climb_rate_after_arm_indicator = 0;
@@ -1692,7 +1692,7 @@ public:
     // inherit constructor
     using Mode::Mode;
     Number mode_number() const override { return Number::THROW; }
-
+    float throw_throttle_limit;
     bool init(bool ignore_checks) override;
     void run() override;
 
@@ -1729,16 +1729,17 @@ private:
         Throw_Disarmed,
         Throw_Detecting,
         Throw_Wait_Throttle_Unlimited,
-        Throw_Uprighting,
-        Throw_HgtStabilise,
-        Throw_PosHold
+        Throw_Uprighting
+        // Throw_HgtStabilise,
+        // Throw_PosHold
     };
 
     ThrowModeStage stage = Throw_Disarmed;
     ThrowModeStage prev_stage = Throw_Disarmed;
     uint32_t last_log_ms;
     bool nextmode_attempted;
-    uint32_t free_fall_start_ms;    // system time free fall was detected
+    uint32_t launch_time;    // system time free fall was detected
+    uint32_t time_of_arm;         // time vehicle was armed in throw mode
     float free_fall_start_velz;     // vertical velocity when free fall was detected
     uint32_t time_since_launch;    // time since launch in ms
 };

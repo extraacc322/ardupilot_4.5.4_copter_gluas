@@ -386,6 +386,7 @@ public:
         k_param_throw_altitude_min,
         k_param_throw_altitude_max,
         k_param_time_difference_for_throttle,
+        k_param_throw_mode_throttle
 
         // the k_param_* space is 9-bits in size
         // 511: reserved
@@ -463,6 +464,9 @@ public:
     AP_Int8         fs_crash_check;
     AP_Float        fs_ekf_thresh;
     AP_Int16        gcs_pid_mask;
+    
+    // Throw mode parameter
+    AP_Float        throw_mode_throttle;
 
 #if MODE_THROW_ENABLED == ENABLED
     AP_Enum<ModeThrow::PreThrowMotorState>         throw_motor_start;

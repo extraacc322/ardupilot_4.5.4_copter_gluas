@@ -8,9 +8,9 @@
 // should be called at 100hz or more
 void ModeStabilize::run()
 {
-    // handles scenario where we switch to stabilize mode from coaxlauchmanual mode
+    // clear launch detected flag if coming from throw mode
     motors->set_launch_detected(0);
-    
+
     // apply simple mode transform to pilot inputs
     update_simple_mode();
 
@@ -69,7 +69,8 @@ void ModeStabilize::run()
     // call attitude controller
     // attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(target_roll, target_pitch, target_yaw_rate);
     attitude_control->input_euler_angle_roll_pitch_bf_rate_yaw(target_roll, target_pitch, target_yaw_rate);
-    
+
     // output pilot's throttle
+    // handle case when switching from throw mode to stabilize mode
     attitude_control->set_throttle_out(pilot_desired_throttle, false, g.throttle_filt);
 }

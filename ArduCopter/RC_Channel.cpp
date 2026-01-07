@@ -294,8 +294,7 @@ bool RC_Channel_Copter::do_aux_function(const aux_func_t ch_option, const AuxSwi
 #if AUTOTUNE_ENABLED == ENABLED
             do_aux_function_change_mode(Mode::Number::AUTOTUNE, ch_flag);
 #endif
-            break;
-
+            break;         
         case AUX_FUNC::LAND:
             do_aux_function_change_mode(Mode::Number::LAND, ch_flag);
             break;
@@ -591,7 +590,9 @@ bool RC_Channel_Copter::do_aux_function(const aux_func_t ch_option, const AuxSwi
         case AUX_FUNC::FORCEFLYING:
             do_aux_function_change_force_flying(ch_flag);
             break;
-
+        case AUX_FUNC::THROW_ENABL_THR:
+            do_aux_function_throw_throttle_enable(ch_flag);
+            break;   
         case AUX_FUNC::AUTO_RTL:
 #if MODE_AUTO_ENABLED == ENABLED
             do_aux_function_change_mode(Mode::Number::AUTO_RTL, ch_flag);
@@ -672,6 +673,22 @@ void RC_Channel_Copter::do_aux_function_change_force_flying(const AuxSwitchPos c
         break;
     case AuxSwitchPos::LOW:
         copter.force_flying = false;
+        break;
+    }
+}
+
+// enable throttle input during throwmode
+void RC_Channel_Copter::do_aux_function_throw_throttle_enable(const AuxSwitchPos ch_flag)
+{
+    switch (ch_flag) {
+    case AuxSwitchPos::HIGH:
+        copter.throw_enable_throttle = true;
+        break;
+    case AuxSwitchPos::MIDDLE:
+        copter.throw_enable_throttle = true;
+        break;
+    case AuxSwitchPos::LOW:
+        copter.throw_enable_throttle = false;
         break;
     }
 }

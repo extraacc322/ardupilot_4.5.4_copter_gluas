@@ -5,6 +5,7 @@
 #include "AC_AttitudeControl_Multi_6DoF.h"
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
+#include <GCS_MAVLink/GCS.h>
 
 // 6DoF control is extracted from the existing copter code by treating desired angles as thrust angles rather than vehicle attitude.
 // Vehicle attitude is then set separately, typically the vehicle would maintain 0 roll and pitch.
@@ -27,6 +28,7 @@ void AC_AttitudeControl_Multi_6DoF::rate_controller_run() {
     }
     _motors.set_roll_pitch(roll_deg,pitch_deg);
 
+    // gcs().send_text(MAV_SEVERITY_INFO,"rate controller");
     AC_AttitudeControl_Multi::rate_controller_run();
 }
 

@@ -45,7 +45,7 @@ void ModeCoaxLaunchManual::run()
         // in order to facilitate the spoolup block
 
         // Attempting to Land
-        launch_detected();
+        check_launch_detected();
         motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
     } else {
         
@@ -53,7 +53,7 @@ void ModeCoaxLaunchManual::run()
         // if (climb_rate_after_arm_indicator == 0 and arm_indicator){
         //     gcs().send_text(MAV_SEVERITY_INFO,"LAUNCH NOT DETECTED - RUN climb cond");
         // }
-        launch_detected();
+        check_launch_detected();
         motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
     }
 
@@ -94,7 +94,7 @@ void ModeCoaxLaunchManual::run()
     attitude_control->set_throttle_out(pilot_desired_throttle, true, g.throttle_filt);
 }
 
-void ModeCoaxLaunchManual::launch_detected(){
+void ModeCoaxLaunchManual::check_launch_detected(){
     /*
         check climb rate
             if the climb rate goes below 100, then mark that the launch has begun: set launch_detected to 1
