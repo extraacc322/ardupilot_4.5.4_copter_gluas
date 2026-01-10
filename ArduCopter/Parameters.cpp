@@ -727,6 +727,13 @@ const AP_Param::Info Copter::var_info[] = {
     // @User: Advanced
     GSCALAR(time_difference_for_throttle, "DT_FOR_THROTT", 500),
 
+    // @Param: THROW_G_THRES
+    // @DisplayName: Throw G threshold
+    // @Description: Acceleration threshold in Gs to detect a launch
+    // @Units: nd
+    // @User: Advanced
+    GSCALAR(throw_launch_g_threshold, "THROW_G_THRES", 3.0f),
+
 #endif
 
 #if OSD_ENABLED || OSD_PARAM_ENABLED

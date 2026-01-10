@@ -95,7 +95,7 @@ void ModeThrow::run()
 
     case Throw_Wait_Throttle_Unlimited:
         // set motors to full range only when throttle unlimited is enabled
-        if (copter.throw_enable_throttle == true) {
+        if (copter.throw_enable_throttle) {
             motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
         } else {
             // keep motors at ground idle until throttle unlimited is enabled
@@ -165,7 +165,7 @@ bool ModeThrow::throw_detected()
     // return (AP_HAL::millis() - time_of_arm > 10000);
     
     // Check for a sufficient acceleration to indicate a launch
-    return fabsf(ahrs.get_accel_ef().z) >= 10 * GRAVITY_MSS;
+    return fabsf(ahrs.get_accel_ef().z) >= g.throw_launch_g_threshold * GRAVITY_MSS;
 }
 
 bool ModeThrow::throw_attitude_good() const
