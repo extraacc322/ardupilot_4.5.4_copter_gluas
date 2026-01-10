@@ -474,7 +474,7 @@ public:
     AP_Int16         throw_altitude_min; // minimum altitude in m above which a throw can be detected
     AP_Int16         throw_altitude_max; // maximum altitude in m below which a throw can be detected
     AP_Int32         time_difference_for_throttle; // Amount of time in ms after launch before throttle input is given
-    AP_Float         throw_launch_g_threshold; // Amount of time in ms after launch before throttle input is given
+    AP_Float         throw_launch_g_threshold; // num of G's (Acceleration threshold) to detect a launch
 #endif
 
     AP_Int16                rc_speed; // speed of fast RC Channels in Hz
