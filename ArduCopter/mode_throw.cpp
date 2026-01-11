@@ -163,9 +163,9 @@ bool ModeThrow::throw_detected()
 {
     // For testing, we can simulate a throw after 10 seconds
     // return (AP_HAL::millis() - time_of_arm > 10000);
-    
-    // Check for a sufficient acceleration to indicate a launch
-    return fabsf(ahrs.get_accel_ef().z) >= g.throw_launch_g_threshold * GRAVITY_MSS;
+
+    // Check for a sufficient acceleration magnitude to indicate a launch
+    return copter.ins.get_accel().length() >= g.throw_launch_g_threshold * GRAVITY_MSS;
 }
 
 bool ModeThrow::throw_attitude_good() const
