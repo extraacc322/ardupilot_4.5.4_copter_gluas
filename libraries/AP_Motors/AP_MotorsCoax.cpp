@@ -249,15 +249,21 @@ void AP_MotorsCoax::output_armed_stabilizing()
         limit.yaw = true;
     }
     
-    // Limit differential yaw outputs at the during launch phase and the transition from launch phase to hover 
-    // if (launch_detected == 1){
-    //     yaw_thrust = constrain_float(yaw_thrust, -yaw_thrust_limit, yaw_thrust_limit);
-    // }
-
     // send thrust output to cw and ccw motors, by adding the +- the yaw thrust to the base thrust to be sent out
-    _thrust_yt_ccw = (thrust_out) + (0.5f * yaw_thrust);
-    _thrust_yt_cw = (yaw_trim*thrust_out) - (0.5f * yaw_thrust);
-
+    if (launch_detected != 0){
+        // This assumes that the vehicle is spinning in a ccw direction during launch such that the upper rotor (ccw) has to spin faster to 
+        // generate a sufficient cw torque to dampen that yaw rate induced during launch.
+        // So, the lower rotor (cw) thrust is set to some fraction (yaw_trim_launch) of the upper rotor (ccw) thrust to help with yaw stability during launch, 
+        // while the yaw thrust is not added to the motor outputs during launch because the gyro yaw rate readings are erroneous after saturation and thus the yaw_thrust calculation is not reliable during launch.
+        
+        // yaw_thrust = constrain_float(yaw_thrust, -yaw_thrust_limit, yaw_thrust_limit);
+        _thrust_yt_ccw = (thrust_out);
+        _thrust_yt_cw = (yaw_trim_launch*thrust_out);
+    } else {
+        // send thrust output to cw and ccw motors, by adding the +- the yaw thrust to the base thrust to be sent out
+        _thrust_yt_ccw = (thrust_out) + (0.5f * yaw_thrust);
+        _thrust_yt_cw = (yaw_trim*thrust_out) - (0.5f * yaw_thrust);
+    }
     // limit thrust out for calculation of actuator gains
     // float thrust_out_actuator = constrain_float(MAX(_throttle_hover * 0.5f, thrust_out), 0.5f, 1.0f);
 
@@ -276,10 +282,10 @@ void AP_MotorsCoax::output_armed_stabilizing()
     }
     
     // Limit roll and pitch actuator outputs at the beginning of the launch
-    // if (launch_detected == 1){
-    //     _actuator_out[1] = constrain_float(_actuator_out[1], -roll_actuator_limit, roll_actuator_limit);
-    //     _actuator_out[2] = constrain_float(_actuator_out[2], -pitch_actuator_limit, pitch_actuator_limit);
-    // }
+    if (launch_detected != 0){
+        _actuator_out[1] = constrain_float(_actuator_out[1], -roll_actuator_limit, roll_actuator_limit);
+        _actuator_out[2] = constrain_float(_actuator_out[2], -pitch_actuator_limit, pitch_actuator_limit);
+    }
     // gcs().send_text(MAV_SEVERITY_INFO, "a0, a1, yt: %d, %.2f, %.2f, %.2f", launch_detected, _actuator_out[0], _actuator_out[1], yaw_thrust);
     
     _actuator_out[4] = -_actuator_out[1];

@@ -295,6 +295,15 @@ const AP_Param::GroupInfo AP_MotorsMulticopter::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("CX_YW_TRM", 51, AP_MotorsMulticopter, yaw_trim, 1),
 
+    // @Param: yaw_trim_launch
+    // @DisplayName: // coax trim for yaw during launch phase
+    // @Description: (For AP_MotorsCoax) (0 ~ 1) // scale ccw (upper rotor) base thrust 
+    // @Range: 0 - 1
+    // @Units: none 
+    // @Increment: 1
+    // @User: Advanced
+    AP_GROUPINFO("CX_YW_LAU", 52, AP_MotorsMulticopter, yaw_trim_launch, 0.8),
+
     AP_GROUPEND
 };
 

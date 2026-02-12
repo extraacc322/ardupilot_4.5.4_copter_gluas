@@ -165,7 +165,10 @@ bool ModeThrow::throw_detected()
     // return (AP_HAL::millis() - time_of_arm > 10000);
 
     // Check for a sufficient acceleration magnitude to indicate a launch
-    return copter.ins.get_accel().length() >= g.throw_launch_g_threshold * GRAVITY_MSS;
+    // return copter.ins.get_accel().length() >= g.throw_launch_g_threshold * GRAVITY_MSS;
+
+    // Return true
+    return true;
 }
 
 bool ModeThrow::throw_attitude_good() const
