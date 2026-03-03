@@ -67,6 +67,21 @@ void AP_AHRS::Write_Attitude(const Vector3f &targets) const
     AP::logger().WriteBlock(&pkt, sizeof(pkt));
 }
 
+void AP_AHRS::Write_Attitude_Quat(const Quaternion &desired) const
+{
+    Quaternion current;
+    get_quat_body_to_ned(current);
+    const struct log_Attitude_Quat pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_ATTITUDE_QUAT_MSG),
+        time_us : AP_HAL::micros64(),
+        curr_q1 : current.q1, curr_q2 : current.q2,
+        curr_q3 : current.q3, curr_q4 : current.q4,
+        des_q1  : desired.q1,  des_q2  : desired.q2,
+        des_q3  : desired.q3,  des_q4  : desired.q4
+    };
+    AP::logger().WriteBlock(&pkt, sizeof(pkt));
+}
+
 void AP_AHRS::Write_Origin(LogOriginType origin_type, const Location &loc) const
 {
     const struct log_ORGN pkt{

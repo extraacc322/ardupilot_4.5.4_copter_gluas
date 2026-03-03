@@ -7,6 +7,7 @@
     LOG_AOA_SSA_MSG, \
     LOG_ATTITUDE_MSG, \
     LOG_ORGN_MSG, \
+    LOG_ATTITUDE_QUAT_MSG,\
     LOG_POS_MSG, \
     LOG_RATE_MSG, \
     LOG_ATSC_MSG
@@ -73,6 +74,20 @@ struct PACKED log_Attitude {
     uint16_t error_yaw;
     uint8_t  active;
 };
+
+// @LoggerMessage: ATTQ
+// @Description: current + desired attitude quaternions
+// @Field: TimeUS: time since system startup
+// @Field: CurrQ1..CurrQ4: current attitude quaternion (body‑to‑NED)
+// @Field: DesQ1..DesQ4: desired attitude quaternion (from controller)
+struct PACKED log_Attitude_Quat {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    float curr_q1, curr_q2, curr_q3, curr_q4;
+    float des_q1,  des_q2,  des_q3,  des_q4;
+};
+
+
 
 // @LoggerMessage: ORGN
 // @Description: Vehicle navigation origin or other notable position
@@ -209,5 +224,7 @@ struct PACKED log_ATSC {
     { LOG_ATSC_MSG, sizeof(log_ATSC), \
         "ATSC", "Qffffff",  "TimeUS,AngPScX,AngPScY,AngPScZ,PDScX,PDScY,PDScZ", "s------", "F000000" , true }, \
     { LOG_VIDEO_STABILISATION_MSG, sizeof(log_Video_Stabilisation), \
-        "VSTB", "Qffffffffff",  "TimeUS,GyrX,GyrY,GyrZ,AccX,AccY,AccZ,Q1,Q2,Q3,Q4", "sEEEooo----", "F0000000000" },
+        "VSTB", "Qffffffffff",  "TimeUS,GyrX,GyrY,GyrZ,AccX,AccY,AccZ,Q1,Q2,Q3,Q4", "sEEEooo----", "F0000000000" }, \
+    { LOG_ATTITUDE_QUAT_MSG, sizeof(log_Attitude_Quat),"ATTQ", "Qffffffff", "TimeUS,CurrQ1,CurrQ2,CurrQ3,CurrQ4,DesQ1,DesQ2,DesQ3,DesQ4","s--------", "F00000000", true},
+        
 

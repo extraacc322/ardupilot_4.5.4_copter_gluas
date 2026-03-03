@@ -497,6 +497,7 @@ public:
     // Logging functions
     void Log_Write_Home_And_Origin();
     void Write_Attitude(const Vector3f &targets) const;
+    void Write_Attitude_Quat(const Quaternion &desired) const;
 
     enum class LogOriginType {
         ekf_origin = 0,

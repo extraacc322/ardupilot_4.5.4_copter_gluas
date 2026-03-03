@@ -64,7 +64,7 @@ void AP_MotorsCoax::set_update_rate(uint16_t speed_hz)
 }
 
 bool AP_MotorsCoax::check_coaxrotorstartup_timer_condition(){
-    return ((t_first != -1) && (((uint32_t)AP_HAL::millis() - t_first) >= (uint32_t)_time_betw_rotor_startups));
+    return (((int)t_first != -1) && (((uint32_t)AP_HAL::millis() - t_first) >= (uint32_t)_time_betw_rotor_startups));
 }
 
 void AP_MotorsCoax::output_to_motors()

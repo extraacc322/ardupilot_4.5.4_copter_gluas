@@ -136,11 +136,11 @@ void ModeCoaxLaunchManual::check_launch_detected(){
         t_first_ = motors->get_t_first();
     }
     if (climb_rate_after_arm_indicator != 0){
-        if (t_first_ != -1){
-            if (((AP_HAL::millis() - t_first_) >= g2.time_for_imu_to_recover_after_launch) && (!launch_over_msg_sent)){
+        if ((int)t_first_ != -1){
+            if (((AP_HAL::millis() - t_first_) >= (uint32_t)g2.time_for_imu_to_recover_after_launch) && (!launch_over_msg_sent)){
                 motors->set_launch_detected(0);
                 gcs().send_text(MAV_SEVERITY_INFO,"LAUNCH OVER");
-                gcs().send_text(MAV_SEVERITY_INFO,"t_first, t_now: %ld, %ld", t_first_, AP_HAL::millis());
+                gcs().send_text(MAV_SEVERITY_INFO,"t_first, t_now: %d, %d", (int32_t)t_first_, (int32_t)AP_HAL::millis());
                 launch_over_msg_sent = true;
                 // set_mode((Mode::Number)g2.throw_nextmode.get(), ModeReason::THROW_COMPLETE);
 
