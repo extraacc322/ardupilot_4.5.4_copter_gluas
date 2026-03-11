@@ -94,12 +94,23 @@ void ModeThrow::run()
         break;
 
     case Throw_Wait_Throttle_Unlimited:
-        // set motors to full range only when throttle unlimited is enabled
-        if (copter.throw_enable_throttle) {
-            motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
+        if (g.time_trigger_throttle_unlimited) {
+            // check time since throw detected and if greater than the threshold, 
+            // enable throttle unlimited to allow user to focus on uprighting the copter
+            if (AP_HAL::millis() - launch_time > g.time_trigger_throttle_unlimited_ms) {
+                motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
+            } else {
+                // keep motors at ground idle until throttle unlimited is enabled
+                motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
+            }
         } else {
-            // keep motors at ground idle until throttle unlimited is enabled
-            motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
+            // set motors to full range only when throttle unlimited is enabled
+            if (copter.throw_enable_throttle) {
+                motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
+            } else {
+                // keep motors at ground idle until throttle unlimited is enabled
+                motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
+            }
         }
         break;
 
@@ -163,12 +174,13 @@ bool ModeThrow::throw_detected()
 {
     // For testing, we can simulate a throw after 10 seconds
     // return (AP_HAL::millis() - time_of_arm > 10000);
-
-    // Check for a sufficient acceleration magnitude to indicate a launch
-    // return copter.ins.get_accel().length() >= g.throw_launch_g_threshold * GRAVITY_MSS;
-
-    // Return true
-    return true;
+    if (g.time_trigger_throttle_unlimited) {
+        // if we are auto triggering throttle unlimited, then we want to detect the throw based on acceleration so that the timing of the throttle unlimited trigger is consistent
+        return copter.ins.get_accel().length() >= g.throw_launch_g_threshold * GRAVITY_MSS;
+    } else {
+        // always return true if we are not auto triggering throttle unlimited, so that the user can enable throttle unlimited when they are ready after the throw
+        return true;
+    }
 }
 
 bool ModeThrow::throw_attitude_good() const

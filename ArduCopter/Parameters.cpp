@@ -734,6 +734,20 @@ const AP_Param::Info Copter::var_info[] = {
     // @User: Advanced
     GSCALAR(throw_launch_g_threshold, "THROW_G_THRES", 3.0f),
 
+    // @Param: TIME_TRIGGER_THROTTLE_UNLIMITED
+    // @DisplayName: Time Trigger Throttle Unlimited
+    // @Description: If 1 then we will trigger throttle unlimited based on time after launch, if 0 we will trigger based on pilot RC input
+    // @Values: 0:Disabled,1:Enabled
+    // @User: Advanced
+    GSCALAR(time_trigger_throttle_unlimited, "TIME_TRIGGER", 0),
+
+    // @Param: TIME_TRIGGER_THROTTLE_UNLIMITED_MS
+    // @DisplayName: Time Trigger Throttle Unlimited MS
+    // @Description: Time in ms after launch to trigger throttle unlimited if time_trigger_throttle_unlimited is enabled
+    // @Units: milliseconds
+    // @User: Advanced
+    GSCALAR(time_trigger_throttle_unlimited_ms, "TIME_TRIGGER_MS", 5000),
+
 #endif
 
 #if OSD_ENABLED || OSD_PARAM_ENABLED
