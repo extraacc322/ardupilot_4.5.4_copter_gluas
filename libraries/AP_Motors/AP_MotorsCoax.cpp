@@ -270,6 +270,33 @@ void AP_MotorsCoax::output_armed_stabilizing()
     // calculate the actuator outputs for roll and pitch
     _actuator_out[1] = roll_thrust * _scale_servo_output; 
     _actuator_out[2] = pitch_thrust * _scale_servo_output;
+ 
+    // Apply per-axis attitude error feedforward scaling if enabled
+    // Convert error thresholds from degrees to radians
+    float min_err_rad = radians(_ff_min_err.get());
+    float max_err_rad = radians(_ff_max_err.get());
+    float min_scale = _ff_min_scale.get();
+    float max_scale = _ff_max_scale.get();
+    
+    // Calculate linear scaling function: if error is between min and max, interpolate scaling
+    auto calc_scale = [](float err, float min_err, float max_err, float min_sc, float max_sc) {
+        if (err < min_err) return min_sc;
+        if (err >= max_err) return max_sc;
+        float progress = (err - min_err) / (max_err - min_err);
+        return min_sc + progress * (max_sc - min_sc);
+    };
+    
+    // Get absolute roll and pitch errors in radians
+    float roll_err = fabsf(_attitude_error.x);
+    float pitch_err = fabsf(_attitude_error.y);
+    
+    // Calculate per-axis scaling factors
+    float roll_scale = calc_scale(roll_err, min_err_rad, max_err_rad, min_scale, max_scale);
+    float pitch_scale = calc_scale(pitch_err, min_err_rad, max_err_rad, min_scale, max_scale);
+    
+    // Apply independent per-axis scaling
+    _actuator_out[1] *= roll_scale;
+    _actuator_out[2] *= pitch_scale;
 
     // limit roll and pitch commands if absolute value is greater than maximum which is 1
     if (fabsf(_actuator_out[1]) > 1.0f) {

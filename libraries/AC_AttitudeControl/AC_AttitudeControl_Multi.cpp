@@ -462,6 +462,9 @@ void AC_AttitudeControl_Multi::rate_controller_run()
     _motors.set_yaw(get_rate_yaw_pid().update_all(_ang_vel_body.z, gyro_latest.z,  _dt, _motors.limit.yaw, _pd_scale.z) + _actuator_sysid.z);
     _motors.set_yaw_ff(get_rate_yaw_pid().get_ff()*_feedforward_scalar);
 
+    // Pass attitude error to motors for advanced control strategies (e.g., feedforward scaling)
+    _motors.set_attitude_error(_attitude_error);
+
     _sysid_ang_vel_body.zero();
     _actuator_sysid.zero();
 

@@ -153,13 +153,10 @@ const AP_Param::GroupInfo AC_AttitudeControl::var_info[] = {
     AP_GROUPINFO("INPUT_TC", 20, AC_AttitudeControl, _input_tc, AC_ATTITUDE_CONTROL_INPUT_TC_DEFAULT),
 
     // @Param: SQRT_CTRL
-    // @DisplayName: Attitude control input time constant
-    // @Description: Attitude control input time constant.  Low numbers lead to sharper response, higher numbers to softer response
-    // @Units: s
-    // @Range: 0 1
-    // @Increment: 0.01
-    // @Values: 0.5:Very Soft, 0.2:Soft, 0.15:Medium, 0.1:Crisp, 0.05:Very Crisp
-    // @User: Standard
+    // @DisplayName: Use Sqrt Controller for Attitude Control
+    // @Description: When enabled, the sqrt controller provides smoother attitude response with better handling of large angle errors and acceleration limiting. When disabled, uses linear P controller for faster response.
+    // @Values: 0:Disabled, 1:Enabled
+    // @User: Advanced
     AP_GROUPINFO("SQRT_CTRL", 21, AC_AttitudeControl, _use_sqrt_ctrl_param, 1),
 
     AP_GROUPEND
@@ -236,7 +233,7 @@ void AC_AttitudeControl::reset_rate_controller_I_terms_smoothly()
 // 5. attitude_controller_run_quat is then run to pass the target angular velocities to the rate controllers and
 //    integrate them into the target attitude. Any errors between the target attitude and the measured attitude are
 //    corrected by first correcting the thrust vector until the angle between the target thrust vector measured
-//    trust vector drops below 2*AC_ATTITUDE_THRUST_ERROR_ANGLE. At this point the heading is also corrected.
+//    thrust vector drops below 2*AC_ATTITUDE_THRUST_ERROR_ANGLE. At this point the heading is also corrected.
 
 // Command a Quaternion attitude with feedforward and smoothing
 // attitude_desired_quat: is updated on each time_step by the integral of the angular velocity
@@ -759,11 +756,10 @@ void AC_AttitudeControl::attitude_controller_run_quat()
     _ahrs.get_quat_body_to_ned(attitude_body);
 
     // This vector represents the angular error to rotate the thrust vector using x and y and heading using z
-    Vector3f attitude_error;
-    thrust_heading_rotation_angles(_attitude_target, attitude_body, attitude_error, _thrust_angle, _thrust_error_angle);
+    thrust_heading_rotation_angles(_attitude_target, attitude_body, _attitude_error, _thrust_angle, _thrust_error_angle);
 
     // Compute the angular velocity corrections in the body frame from the attitude error
-    _ang_vel_body = update_ang_vel_target_from_att_error(attitude_error);
+    _ang_vel_body = update_ang_vel_target_from_att_error(_attitude_error);
 
     // ensure angular velocity does not go over configured limits
     // gcs().send_text(MAV_SEVERITY_INFO, "RATE: %.2f, %.2f", float(degrees(_ang_vel_body.z)), float(_ang_vel_yaw_max));
@@ -813,11 +809,10 @@ void AC_AttitudeControl::euler_pitch_roll_controller_run_quat_with_bf_yaw_rate()
     _ahrs.get_quat_body_to_ned(attitude_body);
 
     // This vector represents the angular error to rotate the thrust vector using x and y and heading using z
-    Vector3f attitude_error;
-    thrust_heading_rotation_angles(_attitude_target, attitude_body, attitude_error, _thrust_angle, _thrust_error_angle);
+    thrust_heading_rotation_angles(_attitude_target, attitude_body, _attitude_error, _thrust_angle, _thrust_error_angle);
 
     // Compute the angular velocity corrections in the body frame from the attitude error
-    _ang_vel_body = update_ang_vel_target_from_att_error(attitude_error);
+    _ang_vel_body = update_ang_vel_target_from_att_error(_attitude_error);
 
     // Override yaw correction with direct body-frame yaw rate
     _ang_vel_body.z = _ang_vel_target.z;
