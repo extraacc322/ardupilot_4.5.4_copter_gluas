@@ -266,7 +266,7 @@ const AP_Param::GroupInfo AP_MotorsMulticopter::var_info[] = {
     // @Units: none 
     // @Increment: 1
     // @User: Advanced
-    AP_GROUPINFO("YAW_THR_LIM", 48, AP_MotorsMulticopter, yaw_thrust_limit, 0.1),
+    AP_GROUPINFO("YAW_THR_LIM", 48, AP_MotorsMulticopter, yaw_thrust_limit, 0.85f),
     
     // @Param: roll_actuator_limit
     // @DisplayName: // yaw thrust limit during launch

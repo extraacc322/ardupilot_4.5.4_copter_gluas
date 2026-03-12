@@ -249,23 +249,33 @@ void AP_MotorsCoax::output_armed_stabilizing()
         limit.yaw = true;
     }
     
-    // send thrust output to cw and ccw motors, by adding the +- the yaw thrust to the base thrust to be sent out
-    if (launch_detected != 0){
-        // This assumes that the vehicle is spinning in a ccw direction during launch such that the upper rotor (ccw) has to spin faster to 
-        // generate a sufficient cw torque to dampen that yaw rate induced during launch.
-        // So, the lower rotor (cw) thrust is set to some fraction (yaw_trim_launch) of the upper rotor (ccw) thrust to help with yaw stability during launch, 
-        // while the yaw thrust is not added to the motor outputs during launch because the gyro yaw rate readings are erroneous after saturation and thus the yaw_thrust calculation is not reliable during launch.
-        
-        // yaw_thrust = constrain_float(yaw_thrust, -yaw_thrust_limit, yaw_thrust_limit);
-        _thrust_yt_ccw = (thrust_out);
-        _thrust_yt_cw = (yaw_trim_launch*thrust_out);
+    // send thrust output to cw and ccw motors
+    if (launch_detected != 0) {
+        // Launch phase: asymmetric yaw control to minimize wake interactions
+        // Keep one motor at base thrust, ramp the other based on yaw demand
+        // This assumes vehicle spins CCW during launch, so yaw_thrust < 0 means CCW needs more thrust
+        if (yaw_thrust < 0.0f) {
+            // CW motor needs more thrust: keep CCW at base, increase CW
+            _thrust_yt_ccw = thrust_out;
+            _thrust_yt_cw = thrust_out - yaw_thrust; // yaw_thrust is negative, so this adds
+        } else {
+            // CCW motor needs more thrust: keep CW at base, increase CCW
+            _thrust_yt_ccw = thrust_out + yaw_thrust;
+            _thrust_yt_cw = thrust_out;
+        }
     } else {
-        // send thrust output to cw and ccw motors, by adding the +- the yaw thrust to the base thrust to be sent out
-        _thrust_yt_ccw = (thrust_out) + (0.5f * yaw_thrust);
-        _thrust_yt_cw = (yaw_trim*thrust_out) - (0.5f * yaw_thrust);
+        // Normal flight: symmetric yaw mixing
+        _thrust_yt_ccw = thrust_out + (0.5f * yaw_thrust);
+        _thrust_yt_cw = (yaw_trim * thrust_out) - (0.5f * yaw_thrust);
     }
-    // limit thrust out for calculation of actuator gains
-    // float thrust_out_actuator = constrain_float(MAX(_throttle_hover * 0.5f, thrust_out), 0.5f, 1.0f);
+
+    // Independently constrain both motor outputs to yaw_thrust_limit limit
+    if (_thrust_yt_ccw > yaw_thrust_limit) {
+        _thrust_yt_ccw = yaw_thrust_limit;
+    }
+    if (_thrust_yt_cw > yaw_thrust_limit) {
+        _thrust_yt_cw = yaw_thrust_limit;
+    }
 
     // calculate the actuator outputs for roll and pitch
     _actuator_out[1] = roll_thrust * _scale_servo_output; 
@@ -317,7 +327,11 @@ void AP_MotorsCoax::output_armed_stabilizing()
     
     _actuator_out[4] = -_actuator_out[1];
     _actuator_out[5] = -_actuator_out[2];
+
+
+
 }
+
 
 // output_test_seq - spin a motor at the pwm value specified
 //  motor_seq is the motor's sequence number from 1 to the number of motors on the frame
