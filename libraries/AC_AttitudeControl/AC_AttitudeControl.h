@@ -228,6 +228,9 @@ public:
     // Return the angle between the target thrust vector and the current thrust vector.
     float get_att_error_angle_deg() const { return degrees(_thrust_error_angle); }
 
+    // Return the attitude error vector in radians (roll, pitch, yaw)
+    const Vector3f& get_attitude_error() const { return _attitude_error; }
+
     // Set x-axis angular velocity in centidegrees/s
     void rate_bf_roll_target(float rate_cds) { _ang_vel_body.x = radians(rate_cds * 0.01f); }
 
@@ -507,6 +510,9 @@ protected:
 
     // This represents a quaternion attitude error in the body frame, used for inertial frame reset handling.
     Quaternion          _attitude_ang_error;
+
+    // This represents the attitude error vector in radians (roll, pitch, yaw) derived from quaternion error
+    Vector3f            _attitude_error;
 
     // The angle between the target thrust vector and the current thrust vector.
     float               _thrust_angle;

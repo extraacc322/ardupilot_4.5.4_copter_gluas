@@ -147,6 +147,12 @@ public:
     // for 6DoF vehicles, sets the roll and pitch offset, this rotates the thrust vector in body frame
     virtual void        set_roll_pitch(float roll_deg, float pitch_deg) {};
 
+    // set attitude error vector (roll, pitch, yaw in radians)
+    void                set_attitude_error(const Vector3f& attitude_error) { _attitude_error = attitude_error; }
+
+    // get attitude error vector (roll, pitch, yaw in radians)
+    const Vector3f&     get_attitude_error() const { return _attitude_error; }
+
     // accessors for roll, pitch, yaw and throttle inputs to motors
     float               get_roll() const { return _roll_in; }
     float               get_roll_ff() const { return _roll_in_ff; }
@@ -338,6 +344,7 @@ protected:
     float               _forward_in;                // last forward input from set_forward caller
     float               _lateral_in;                // last lateral input from set_lateral caller
     float               _throttle_avg_max;          // last throttle input from set_throttle_avg_max
+    Vector3f            _attitude_error;            // attitude error vector in radians (roll, pitch, yaw)
     LowPassFilterFloat  _throttle_filter;           // pilot throttle input filter
     DerivativeFilterFloat_Size7  _throttle_slew;    // throttle output slew detector
     LowPassFilterFloat  _throttle_slew_filter;      // filter for the output of the throttle slew

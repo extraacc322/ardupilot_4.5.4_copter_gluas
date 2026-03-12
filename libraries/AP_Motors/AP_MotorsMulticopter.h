@@ -175,6 +175,10 @@ protected:
     AP_Float            pitch_actuator_limit; // pitch actuator limit during launch
     AP_Float            yaw_trim; // yaw trim on coax motors    
     AP_Float            yaw_trim_launch; // yaw trim on coax motors during launch phase, which can be different from yaw trim during non-launch phase to help with launch stability
+    AP_Float            _ff_min_err;     // (For AP_MotorsCoax) Feedforward minimum error threshold in degrees
+    AP_Float            _ff_max_err;     // (For AP_MotorsCoax) Feedforward maximum error threshold in degrees
+    AP_Float            _ff_min_scale;   // (For AP_MotorsCoax) Feedforward minimum scaling factor
+    AP_Float            _ff_max_scale;   // (For AP_MotorsCoax) Feedforward maximum scaling factor
 
     // Maximum lean angle of yaw servo in degrees. This is specific to tricopter
     AP_Float            _yaw_servo_angle_max_deg;

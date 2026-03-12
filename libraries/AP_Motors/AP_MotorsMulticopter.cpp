@@ -304,6 +304,40 @@ const AP_Param::GroupInfo AP_MotorsMulticopter::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("CX_YW_LAU", 52, AP_MotorsMulticopter, yaw_trim_launch, 0.8),
 
+    // @Param: FF_MIN_ERR
+    // @DisplayName: Feedforward minimum error threshold
+    // @Description: (For AP_MotorsCoax) Attitude error threshold at which to start applying feedforward scaling, in degrees
+    // @Range: 0 - 60
+    // @Units: deg
+    // @Increment: 5
+    // @User: Advanced
+    AP_GROUPINFO("FF_MIN_ERR", 53, AP_MotorsMulticopter, _ff_min_err, 45),
+
+    // @Param: FF_MAX_ERR
+    // @DisplayName: Feedforward maximum error threshold
+    // @Description: (For AP_MotorsCoax) Attitude error threshold at which feedforward scaling reaches maximum, in degrees
+    // @Range: 0 - 90
+    // @Units: deg
+    // @Increment: 5
+    // @User: Advanced
+    AP_GROUPINFO("FF_MAX_ERR", 54, AP_MotorsMulticopter, _ff_max_err, 90),
+
+    // @Param: FF_MIN_SCALE
+    // @DisplayName: Feedforward minimum scaling factor
+    // @Description: (For AP_MotorsCoax) Base servo output scaling factor below minimum error threshold, typically 1.0 for no feedforward
+    // @Range: 1 - 3
+    // @Increment: 0.1
+    // @User: Advanced
+    AP_GROUPINFO("FF_MIN_SCALE", 55, AP_MotorsMulticopter, _ff_min_scale, 1.0),
+
+    // @Param: FF_MAX_SCALE
+    // @DisplayName: Feedforward maximum scaling factor
+    // @Description: (For AP_MotorsCoax) Maximum servo output scaling factor when error exceeds maximum threshold
+    // @Range: 1 - 5
+    // @Increment: 0.1
+    // @User: Advanced
+    AP_GROUPINFO("FF_MAX_SCALE", 56, AP_MotorsMulticopter, _ff_max_scale, 3.0),
+
     AP_GROUPEND
 };
 
