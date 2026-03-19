@@ -389,7 +389,9 @@ public:
         k_param_throw_mode_throttle,
         k_param_throw_launch_g_threshold,
         k_param_time_trigger_throttle_unlimited,
-        k_param_time_trigger_throttle_unlimited_ms
+        k_param_time_trigger_throttle_unlimited_ms,
+        k_param_throw_ekf_acc_nse_launch,
+        k_param_throw_ekf_acc_nse_upright,
 
         // the k_param_* space is 9-bits in size
         // 511: reserved
@@ -479,6 +481,8 @@ public:
     AP_Float         throw_launch_g_threshold; // num of G's (Acceleration threshold) to detect a launch
     AP_Int32         time_trigger_throttle_unlimited; // If 1, throttle unlimited is triggered automatically after elapsed time. If 0, pilot manually enables via RC switch
     AP_Int32         time_trigger_throttle_unlimited_ms; // time in ms after launch to trigger throttle unlimited if time_trigger_throttle_unlimited is enabled
+    AP_Float         throw_ekf_acc_nse_launch;   // EK3_ACC_P_NSE value applied while in throw-detecting/launch phase
+    AP_Float         throw_ekf_acc_nse_upright;  // EK3_ACC_P_NSE value restored once vehicle is uprighting / on mode exit
 #endif
 
     AP_Int16                rc_speed; // speed of fast RC Channels in Hz

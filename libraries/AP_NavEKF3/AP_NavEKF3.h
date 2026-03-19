@@ -314,6 +314,9 @@ public:
     // set and save the _baroAltNoise parameter
     void set_baro_alt_noise(float noise) { _baroAltNoise.set_and_save(noise); };
 
+    // set the _accNoise parameter (in-RAM only, does not save to flash)
+    void set_acc_noise(float noise) { _accNoise.set(noise); };
+
     // allow the enable flag to be set by Replay
     void set_enable(bool enable) { _enable.set_enable(enable); }
 

@@ -48,6 +48,9 @@ void ModeThrow::run()
         }
         // Set the auto_arm status to true to avoid a possible automatic disarm caused by selection of an auto mode with throttle at minimum
         copter.set_auto_armed(true);
+        // Raise EK3_ACC_P_NSE for the detecting/launch phase so the EKF is less
+        // sensitive to IMU noise during the throw
+        ahrs.EKF3.set_acc_noise(g.throw_ekf_acc_nse_launch);
         stage = Throw_Detecting;
 
     } else if (stage == Throw_Detecting && throw_detected()){
@@ -65,6 +68,9 @@ void ModeThrow::run()
                motors->get_spool_state() == AP_Motors::SpoolState::THROTTLE_UNLIMITED) {
         time_since_launch = AP_HAL::millis() - launch_time; // this is recorded about ~50ms after throttle was actually enabled (artifact of state machine processing time)
         gcs().send_text(MAV_SEVERITY_INFO,"throttle enabled after %.2d ms", int(time_since_launch));
+        // Restore EK3_ACC_P_NSE to the nominal upright value now that the vehicle
+        // is under motor control and uprighting
+        ahrs.EKF3.set_acc_noise(g.throw_ekf_acc_nse_upright);
         stage = Throw_Uprighting;
     }
 
@@ -97,7 +103,7 @@ void ModeThrow::run()
         if (g.time_trigger_throttle_unlimited) {
             // check time since throw detected and if greater than the threshold, 
             // enable throttle unlimited to allow user to focus on uprighting the copter
-            if (AP_HAL::millis() - launch_time > g.time_trigger_throttle_unlimited_ms) {
+            if (AP_HAL::millis() - launch_time > (uint32_t)g.time_trigger_throttle_unlimited_ms) {
                 motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
             } else {
                 // keep motors at ground idle until throttle unlimited is enabled
@@ -168,6 +174,18 @@ void ModeThrow::run()
             attitude_ok);
     }
 #endif  // HAL_LOGGING_ENABLED
+}
+
+void ModeThrow::exit()
+{
+    // Restore EK3_ACC_P_NSE to the upright/nominal value so we don't leave
+    // an elevated noise value in the EKF after exiting throw mode
+    ahrs.EKF3.set_acc_noise(g.throw_ekf_acc_nse_upright);
+
+    // Reset launch detection state so a future entry starts clean
+    motors->set_launch_detected(0);
+    time_since_launch = 0;
+    launch_time = 0;
 }
 
 bool ModeThrow::throw_detected()

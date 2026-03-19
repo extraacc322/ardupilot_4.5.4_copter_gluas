@@ -748,6 +748,22 @@ const AP_Param::Info Copter::var_info[] = {
     // @User: Advanced
     GSCALAR(time_trigger_throttle_unlimited_ms, "TIME_TRIGGER_MS", 2000),
 
+    // @Param: THROW_EKF_NSE_L
+    // @DisplayName: Throw mode EKF accel noise (launch/detecting phase)
+    // @Description: Value applied to EK3_ACC_P_NSE when armed and waiting for/detecting the throw. Higher values make the EKF trust the accelerometer less. Restored to THROW_EKF_NSE_U on uprighting or mode exit.
+    // @Range: 0.05 5.0
+    // @Units: m/s/s
+    // @User: Advanced
+    GSCALAR(throw_ekf_acc_nse_launch, "THROW_EKF_NSE_L", 0.6f),
+
+    // @Param: THROW_EKF_NSE_U
+    // @DisplayName: Throw mode EKF accel noise (upright/nominal)
+    // @Description: Value restored to EK3_ACC_P_NSE once the vehicle enters Throw_Uprighting or exits throw mode. Should match your nominal EK3_ACC_P_NSE (default 0.35).
+    // @Range: 0.05 5.0
+    // @Units: m/s/s
+    // @User: Advanced
+    GSCALAR(throw_ekf_acc_nse_upright, "THROW_EKF_NSE_U", 0.35f),
+
 #endif
 
 #if OSD_ENABLED || OSD_PARAM_ENABLED
