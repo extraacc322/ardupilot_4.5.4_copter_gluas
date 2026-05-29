@@ -96,6 +96,7 @@ public:
         AUTO_RTL =     27,  // Auto RTL, this is not a true mode, AUTO will report as this mode if entered to perform a DO_LAND_START Landing sequence
         TURTLE =       28,  // Flip over after crash
         COAX_LAUNCH_MANUAL =       29,  // After launch, Stabilize vehicle using pilot inputs 
+        RPM_CONTROL =  30,  // RPM feedback control mode for bdshot telemetry-based speed regulation
 
         // Mode number 127 reserved for the "drone show mode" in the Skybrush
         // fork at https://github.com/skybrush-io/ardupilot
@@ -1570,6 +1571,66 @@ private:
     uint32_t time_of_launch = -1;
     // float time_for_imu_to_recover_after_launch;
     bool launch_over_msg_sent = false;
+};
+
+class ModeRpmControl : public Mode {
+
+public:
+    ModeRpmControl(void);
+    Number mode_number() const override { return Number::RPM_CONTROL; }
+
+    bool init(bool ignore_checks) override;
+    void run() override;
+    void exit() override;
+
+    bool requires_GPS() const override { return false; }
+    bool has_manual_throttle() const override { return true; }
+    bool allows_arming(AP_Arming::Method method) const override { return true; };
+    bool is_autopilot() const override { return false; }
+    bool logs_attitude() const override { return true; }
+
+    static const struct AP_Param::GroupInfo var_info[];
+
+protected:
+    const char *name() const override { return "RPM_CONTROL"; }
+    const char *name4() const override { return "RPMC"; }
+
+private:
+    // PID controller state
+    float rpm_integrator;           // Integral accumulator
+    float rpm_last_error;           // Previous error for derivative
+    uint32_t rpm_last_update_ms;    // Last update time for dt calculation
+    float rpm_last_p_term;          // Last Proportional term
+    float rpm_last_i_term;          // Last Integral term
+    float rpm_last_d_term;          // Last Derivative term
+    float rpm_throttle_output;      // Current governor collective throttle output
+    float rpm_error_scaled;         // Last scaled RPM error
+    float rpm_throttle_correction;  // Last throttle correction computed
+    float rpm_error;                // Last RPM error
+
+    // RPM telemetry storage
+    float rpm_measured_filtered;    // Low-pass filtered measured RPM
+    uint32_t rpm_telemetry_last_ms; // Last time we received RPM telemetry
+
+    // Helper functions
+    float get_rpm_from_telemetry(uint8_t motor_index);
+    float update_rpm_filter(float new_rpm, float current_filtered);
+    float compute_pid_correction();
+    void apply_rpm_control();
+    bool check_rpm_telemetry_timeout();
+    void log_rpm_data();
+
+    // Parameters
+    AP_Int8   rpm_enabled;          // Enable/disable RPM control mode
+    AP_Float  rpm_target;           // Target RPM (for all motors, can be made per-motor later)
+    AP_Float  rpm_kp;               // Proportional gain
+    AP_Float  rpm_ki;               // Integral gain
+    AP_Float  rpm_kd;               // Derivative gain
+    AP_Float  rpm_ki_max;           // Maximum integral term (windup protection)
+    AP_Float  rpm_filter_freq;      // Low-pass filter frequency for RPM measurement (Hz)
+    AP_Float  rpm_corr_max;         // Maximum throttle correction magnitude
+    AP_Int16  rpm_telemetry_timeout_ms;  // Timeout for RPM telemetry (ms)
+    AP_Float  rpm_deadband;         // RPM error deadband below which control is not applied (reduces chatter)
 };
 
 class ModeStabilize : public Mode {

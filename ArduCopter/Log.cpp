@@ -407,6 +407,40 @@ void Copter::Log_Write_Guided_Attitude_Target(ModeGuided::SubMode target_type, f
     logger.WriteBlock(&pkt, sizeof(pkt));
 }
 
+struct PACKED log_RpmFeedback {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    float target;
+    float measured;
+    float error;
+    float p;
+    float i;
+    float d;
+    float error_scaled;
+    float throttle_corr;
+    float throttle_out;
+};
+
+// Write an RPM feedback packet
+void Copter::Log_Write_RPMF(float target, float measured, float error, float p, float i, float d, float error_scaled, float throttle_corr, float throttle_out)
+{
+    struct log_RpmFeedback pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_RPMF_MSG),
+        time_us       : AP_HAL::micros64(),
+        target        : target,
+        measured      : measured,
+        error         : error,
+        p             : p,
+        i             : i,
+        d             : d,
+        error_scaled  : error_scaled,
+        throttle_corr : throttle_corr,
+        throttle_out  : throttle_out
+    };
+    logger.WriteBlock(&pkt, sizeof(pkt));
+}
+
+
 // type and unit information can be found in
 // libraries/AP_Logger/Logstructure.h; search for "log_Units" for
 // units and "Format characters" for field type information
@@ -560,6 +594,21 @@ const struct LogStructure Copter::log_structure[] = {
 
     { LOG_GUIDED_ATTITUDE_TARGET_MSG, sizeof(log_Guided_Attitude_Target),
       "GUIA",  "QBffffffff",    "TimeUS,Type,Roll,Pitch,Yaw,RollRt,PitchRt,YawRt,Thrust,ClimbRt", "s-dddkkk-n", "F-000000-0" , true },
+
+// @LoggerMessage: RPMF
+// @Description: RPM Feedback Control Loop
+// @Field: TimeUS: Time since system startup
+// @Field: Tar: Target RPM
+// @Field: Act: Measured RPM
+// @Field: Err: RPM Error
+// @Field: P: Proportional term
+// @Field: I: Integral term
+// @Field: D: Derivative term
+// @Field: ErrS: Scaled RPM Error
+// @Field: ThC: Throttle Correction
+// @Field: ThO: RPM Throttle Output
+    { LOG_RPMF_MSG, sizeof(log_RpmFeedback),
+      "RPMF", "Qfffffffff", "TimeUS,Tar,Act,Err,P,I,D,ErrS,ThC,ThO", "sqqq------", "F000------", true },
 };
 
 void Copter::Log_Write_Vehicle_Startup_Messages()

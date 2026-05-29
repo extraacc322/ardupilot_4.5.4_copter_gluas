@@ -1319,6 +1319,12 @@ const AP_Param::GroupInfo ParametersG2::var_info2[] = {
 
     // ID 62 is reserved for the AP_SUBGROUPEXTENSION
 
+#if MODE_RPM_CONTROL_ENABLED == ENABLED
+    // @Group: RPMC_
+    // @Path: mode_rpm_control.cpp
+    AP_SUBGROUPPTR(mode_rpm_control_ptr, "RPMC", 11, ParametersG2, ModeRpmControl),
+#endif
+
     AP_GROUPEND
 };
 
@@ -1356,6 +1362,9 @@ ParametersG2::ParametersG2(void)
 #endif
 #if MODE_SYSTEMID_ENABLED == ENABLED
     ,mode_systemid_ptr(&copter.mode_systemid)
+#endif
+#if MODE_RPM_CONTROL_ENABLED == ENABLED
+    ,mode_rpm_control_ptr(&copter.mode_rpm_control)
 #endif
 #if MODE_AUTOROTATE_ENABLED == ENABLED
     ,arot()

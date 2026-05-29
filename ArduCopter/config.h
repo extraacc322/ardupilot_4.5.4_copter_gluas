@@ -272,6 +272,12 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
+// RPM Control - maintain target RPM using bdshot telemetry feedback
+#ifndef MODE_RPM_CONTROL_ENABLED
+# define MODE_RPM_CONTROL_ENABLED ENABLED
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
 // Flowhold - use optical flow to hover in place
 #ifndef MODE_FLOWHOLD_ENABLED
 # define MODE_FLOWHOLD_ENABLED AP_OPTICALFLOW_ENABLED

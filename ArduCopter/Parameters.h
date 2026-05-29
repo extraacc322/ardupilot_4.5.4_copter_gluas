@@ -638,6 +638,11 @@ public:
     void *mode_systemid_ptr;
 #endif
 
+#if MODE_RPM_CONTROL_ENABLED == ENABLED
+    // we need a pointer to the mode for the G2 table
+    void *mode_rpm_control_ptr;
+#endif
+
     // vibration failsafe enable/disable
     AP_Int8 fs_vibe_enabled;
 
