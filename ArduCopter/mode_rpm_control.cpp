@@ -15,20 +15,20 @@ const AP_Param::GroupInfo ModeRpmControl::var_info[] = {
     // @User: Standard
     AP_GROUPINFO_FLAGS("_ENABLE", 1, ModeRpmControl, rpm_enabled, 1, AP_PARAM_FLAG_ENABLE),
 
-    // @Param: _TARGET
-    // @DisplayName: Target RPM
-    // @Description: Target RPM for motor speed control. The controller will attempt to maintain this RPM on all motors
+    // @Param: _TGT_UPP
+    // @DisplayName: Target RPM Upper Rotor
+    // @Description: Target RPM for upper (CCW) motor speed control
     // @Range: 0 100000
     // @Units: rpm
     // @User: Standard
-    AP_GROUPINFO("_TARGET", 2, ModeRpmControl, rpm_target, 5000),
+    AP_GROUPINFO("_TGT_UPP", 2, ModeRpmControl, rpm_target_upper, 5000),
 
     // @Param: _KP
     // @DisplayName: RPM Control Proportional Gain
     // @Description: Proportional gain for RPM controller. Higher values provide faster response but may cause oscillation
     // @Range: 0 1
     // @User: Standard
-    AP_GROUPINFO("_KP", 3, ModeRpmControl, rpm_kp, 0.1f),
+    AP_GROUPINFO("_KP", 3, ModeRpmControl, rpm_kp, 0.0004f),
 
     // @Param: _KI
     // @DisplayName: RPM Control Integral Gain
@@ -80,7 +80,15 @@ const AP_Param::GroupInfo ModeRpmControl::var_info[] = {
     // @Range: 0 5000
     // @Units: rpm
     // @User: Standard
-    AP_GROUPINFO("_DEADBAND", 10, ModeRpmControl, rpm_deadband, 100),
+    AP_GROUPINFO("_DEADBAND", 10, ModeRpmControl, rpm_deadband, 10),
+
+    // @Param: _TGT_LOW
+    // @DisplayName: Target RPM Lower Rotor
+    // @Description: Target RPM for lower (CW) motor speed control
+    // @Range: 0 100000
+    // @Units: rpm
+    // @User: Standard
+    AP_GROUPINFO("_TGT_LOW", 11, ModeRpmControl, rpm_target_lower, 5000),
 
     AP_GROUPEND
 };
@@ -94,25 +102,26 @@ bool ModeRpmControl::init(bool ignore_checks)
 {
     gcs().send_text(MAV_SEVERITY_INFO, "RPM Control Mode: Initializing");
     
-    // Reset controller state
-    rpm_integrator = 0.0f;
-    rpm_last_error = 0.0f;
+    // Reset controller states
+    rpm_integrator_upper = 0.0f;
+    rpm_integrator_lower = 0.0f;
+    rpm_last_error_upper = 0.0f;
+    rpm_last_error_lower = 0.0f;
+    rpm_measured_filtered_upper = 0.0f;
+    rpm_measured_filtered_lower = 0.0f;
+    rpm_throttle_output_upper = 0.0f;
+    rpm_throttle_output_lower = 0.0f;
+
     rpm_last_update_ms = AP_HAL::millis();
-    rpm_measured_filtered = 0.0f;
     rpm_telemetry_last_ms = AP_HAL::millis();
-    rpm_last_p_term = 0.0f;
-    rpm_last_i_term = 0.0f;
-    rpm_last_d_term = 0.0f;
-    rpm_error = 0.0f;
-    rpm_error_scaled = 0.0f;
-    rpm_throttle_correction = 0.0f;
-    
-    // Initialize output throttle to the current vehicle throttle output for bumpless transfer
-    rpm_throttle_output = motors->get_throttle_out();
-    // if (rpm_throttle_output < 0.0f) {
-    //     rpm_throttle_output = 0.0f;
-    // }
-    
+
+    rpm_last_p_term_upper = 0.0f;
+    rpm_last_i_term_upper = 0.0f;
+    rpm_last_d_term_upper = 0.0f;
+    rpm_last_p_term_lower = 0.0f;
+    rpm_last_i_term_lower = 0.0f;
+    rpm_last_d_term_lower = 0.0f;
+
     return true;
 }
 
@@ -123,29 +132,34 @@ void ModeRpmControl::exit()
 
 void ModeRpmControl::run()
 {
-    // if (!rpm_enabled) {
-    //     static uint32_t last_disabled_warning_ms = 0;
-    //     uint32_t now_ms = AP_HAL::millis();
-    //     if (now_ms - last_disabled_warning_ms > 5000) {
-    //         gcs().send_text(MAV_SEVERITY_WARNING, "RPM Control: Mode disabled via parameter");
-    //         last_disabled_warning_ms = now_ms;
-    //     }
-    //     zero_throttle_and_relax_ac();
-    //     return;
-    // }
-
     // Handle arming/disarming
     if (!motors->armed()) {
         motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::SHUT_DOWN);
-        rpm_integrator = 0.0f;
-        rpm_measured_filtered = 0.0f;
+        rpm_integrator_upper = 0.0f;
+        rpm_integrator_lower = 0.0f;
+        rpm_measured_filtered_upper = 0.0f;
+        rpm_measured_filtered_lower = 0.0f;
+        rpm_throttle_output_upper = 0.0f;
+        rpm_throttle_output_lower = 0.0f;
         // Keep refreshing the telemetry watchdog timer while disarmed
         rpm_telemetry_last_ms = AP_HAL::millis();
     } else if (!copter.throw_enable_throttle) {
         // keep motors at ground idle until throttle unlimited is enabled
         motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
+        static uint32_t last_idle_msg_ms = 0;
+        uint32_t now_ms = AP_HAL::millis();
+        if (now_ms - last_idle_msg_ms > 5000) {
+            gcs().send_text(MAV_SEVERITY_INFO, "RPM Control: Waiting for throttle to be enabled");
+            last_idle_msg_ms = now_ms;
+        }
     } else {
         motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
+        // static uint32_t last_active_msg_ms = 0;
+        // uint32_t now_ms = AP_HAL::millis();
+        // if (now_ms - last_active_msg_ms > 5000) {
+        //     gcs().send_text(MAV_SEVERITY_INFO, "RPM Control: Throttle enabled, starting control");
+        //     last_active_msg_ms = now_ms;
+        // }
     }
     
     switch (motors->get_spool_state()) {
@@ -153,8 +167,12 @@ void ModeRpmControl::run()
         // Motors Stopped
         attitude_control->reset_yaw_target_and_rate();
         attitude_control->reset_rate_controller_I_terms();
-        // motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::GROUND_IDLE);
         rpm_telemetry_last_ms = AP_HAL::millis(); // Keep refreshing
+        rpm_integrator_upper = 0.0f;
+        rpm_integrator_lower = 0.0f;
+        rpm_throttle_output_upper = 0.0f;
+        rpm_throttle_output_lower = 0.0f;
+        // zero_throttle_and_relax_ac();
         break;
 
     case AP_Motors::SpoolState::GROUND_IDLE:
@@ -162,6 +180,11 @@ void ModeRpmControl::run()
         attitude_control->reset_yaw_target_and_rate();
         attitude_control->reset_rate_controller_I_terms_smoothly();
         rpm_telemetry_last_ms = AP_HAL::millis(); // Keep refreshing
+        rpm_integrator_upper = 0.0f;
+        rpm_integrator_lower = 0.0f;
+        rpm_throttle_output_upper = 0.0f;
+        rpm_throttle_output_lower = 0.0f;
+        // zero_throttle_and_relax_ac();
         break;
 
     case AP_Motors::SpoolState::THROTTLE_UNLIMITED:
@@ -169,6 +192,8 @@ void ModeRpmControl::run()
         set_land_complete(false);
         // Apply RPM control
         apply_rpm_control();
+        break;
+
     case AP_Motors::SpoolState::SPOOLING_UP:
     case AP_Motors::SpoolState::SPOOLING_DOWN:
         // do nothing
@@ -177,7 +202,6 @@ void ModeRpmControl::run()
 
     // Check if RPM telemetry is available
     if (check_rpm_telemetry_timeout()) {
-        // gcs().send_text(MAV_SEVERITY_INFO, "LE WAY - RPM Control: Telemetry timeout - disabling control");
         static uint32_t last_timeout_warning_ms = 0;
         uint32_t now_ms = AP_HAL::millis();
         if (now_ms - last_timeout_warning_ms > 5000) {
@@ -190,56 +214,6 @@ void ModeRpmControl::run()
 
     // Log data for tuning
     log_rpm_data();
-}
-
-float ModeRpmControl::get_rpm_from_telemetry(uint8_t motor_index)
-{
-    uint32_t motor_mask = motors->get_motor_mask();
-    uint8_t active_motor_count = 0;
-    float rpm_sum = 0.0f;
-    uint32_t now_ms = AP_HAL::millis();
-
-    uint8_t motor_poles = 14; // default to 14 as in AP_BLHeli
-#if defined(HAVE_AP_BLHELI_SUPPORT)
-    AP_BLHeli *blh = AP_BLHeli::get_singleton();
-    if (blh) {
-        motor_poles = blh->get_motor_poles();
-    }
-#endif
-    if (motor_poles == 0) {
-        motor_poles = 14; // safe guard against division by zero
-    }
-
-    bool telemetry_alive = false;
-
-    for (uint8_t i = 0; i < 16; i++) {
-        if (motor_mask & (1U << i)) {
-            uint16_t erpm = hal.rcout->get_erpm(i);
-            float error_rate = hal.rcout->get_erpm_error_rate(i);
-            
-            // Telemetry link is alive if we are successfully receiving packets
-            if (error_rate < 100.0f) {
-                telemetry_alive = true;
-            }
-
-            // erpm must not be 0xFFFF (0 is a valid reading when stopped)
-            if (erpm != 0xFFFF) {
-                float rpm = (float)erpm * 200.0f / (float)motor_poles;
-                rpm_sum += rpm;
-                active_motor_count++;
-            }
-        }
-    }
-
-    if (telemetry_alive) {
-        rpm_telemetry_last_ms = now_ms;
-    }
-
-    if (active_motor_count > 0) {
-        return rpm_sum / active_motor_count;
-    }
-
-    return 0.0f;
 }
 
 float ModeRpmControl::update_rpm_filter(float new_rpm, float current_filtered)
@@ -265,53 +239,87 @@ float ModeRpmControl::update_rpm_filter(float new_rpm, float current_filtered)
     return filtered;
 }
 
-float ModeRpmControl::compute_pid_correction()
+float ModeRpmControl::get_rpm_from_telemetry(uint8_t motor_channel)
 {
-    // Read average measured RPM from motor telemetry
-    float rpm_measured = get_rpm_from_telemetry(0);
+    uint32_t motor_mask = motors->get_motor_mask();
+    uint32_t now_ms = AP_HAL::millis();
+
+    uint8_t motor_poles = 14; // default to 14 as in AP_BLHeli
+#if defined(HAVE_AP_BLHELI_SUPPORT)
+    AP_BLHeli *blh = AP_BLHeli::get_singleton();
+    if (blh) {
+        motor_poles = blh->get_motor_poles();
+    }
+#endif
+    if (motor_poles == 0) {
+        motor_poles = 14; // safe guard against division by zero
+    }
+
+    bool telemetry_alive = false;
+
+    if (motor_mask & (1U << motor_channel)) {
+        uint16_t erpm = hal.rcout->get_erpm(motor_channel);
+        float error_rate = hal.rcout->get_erpm_error_rate(motor_channel);
+        
+        // Telemetry link is alive if we are successfully receiving packets
+        if (error_rate < 100.0f) {
+            telemetry_alive = true;
+        }
+
+        // erpm must not be 0xFFFF (0 is a valid reading when stopped)
+        if (erpm != 0xFFFF) {
+            float rpm = (float)erpm * 200.0f / (float)motor_poles;
+            if (telemetry_alive) {
+                rpm_telemetry_last_ms = now_ms;
+            }
+            return rpm;
+        }
+    }
+
+    return 0.0f;
+}
+
+float ModeRpmControl::compute_pid_correction(float target_rpm, float rpm_measured, float &measured_filtered, float &integrator, float &last_error, float &last_p_term, float &last_i_term, float &last_d_term)
+{
+    uint32_t now_ms = AP_HAL::millis();
     
     // Update filter
-    rpm_measured_filtered = update_rpm_filter(rpm_measured, rpm_measured_filtered);
+    measured_filtered = update_rpm_filter(rpm_measured, measured_filtered);
     
     // Calculate error
-    rpm_error = rpm_target - rpm_measured_filtered;
+    float rpm_error = target_rpm - measured_filtered;
 
     // Freeze integral accumulation if within deadband
     bool inside_deadband = fabsf(rpm_error) < rpm_deadband;
 
     // Scale the error by a factor that makes sense for the PID loop. 
     // We want the PID correction to be in the same range as the throttle output.
-    rpm_error_scaled = rpm_error * 0.001f;
+    float error_scaled = rpm_error * 0.001f;
     
     // Calculate time since last update
-    uint32_t now_ms = AP_HAL::millis();
     float dt = (now_ms - rpm_last_update_ms) * 0.001f;
-    rpm_last_update_ms = now_ms;
-    
     if (dt > 1.0f) dt = 1.0f; // Clamp dt
     if (dt < 0.001f) dt = 0.001f; // Minimum dt to avoid division issues
     
     // Proportional term
-    rpm_last_p_term = inside_deadband ? 0.0f : (rpm_kp * rpm_error_scaled);
+    last_p_term = inside_deadband ? 0.0f : (rpm_kp * error_scaled);
     
     // Integral term with anti-windup
     if (!inside_deadband) {
-        rpm_integrator += rpm_error_scaled * dt;
-        rpm_integrator = constrain_float(rpm_integrator, -rpm_ki_max, rpm_ki_max);
+        integrator += error_scaled * dt;
+        integrator = constrain_float(integrator, -rpm_ki_max, rpm_ki_max);
     }
-    rpm_last_i_term = rpm_ki * rpm_integrator;
+    last_i_term = rpm_ki * integrator;
     
     // Derivative term
-    rpm_last_d_term = inside_deadband ? 0.0f : (rpm_kd * (rpm_error_scaled - rpm_last_error) / dt);
-    rpm_last_error = rpm_error_scaled;
+    last_d_term = inside_deadband ? 0.0f : (rpm_kd * (error_scaled - last_error) / dt);
+    last_error = error_scaled;
     
     // Compute total correction
-    float correction = (rpm_last_p_term + rpm_last_i_term + rpm_last_d_term);
+    float correction = (last_p_term + last_i_term + last_d_term);
     
     // Clamp correction
     correction = constrain_float(correction, -rpm_corr_max, rpm_corr_max);
-    
-    rpm_throttle_correction = correction;
     
     return correction;
 }
@@ -329,32 +337,65 @@ bool ModeRpmControl::check_rpm_telemetry_timeout()
 
 void ModeRpmControl::apply_rpm_control()
 {
-    // Compute PID correction based on RPM error
-    float throttle_correction = compute_pid_correction();
-    
-    // Integrate the correction directly into the actual collective throttle state
-    rpm_throttle_output += throttle_correction;
-    
-    // Clamp output throttle to valid range
-    rpm_throttle_output = constrain_float(rpm_throttle_output, 0.0f, 1.0f);
-    
-    // Pilot attitude inputs (for roll, pitch, and yaw tracking)
-    // update_simple_mode();
+    // Fetch individual rotor telemetry values
+    float rpm_measured_upper = get_rpm_from_telemetry(0)*1.16f;
+    float rpm_measured_lower = get_rpm_from_telemetry(3)*1.16f;
 
-    // float target_roll, target_pitch;
-    // get_pilot_desired_lean_angles(target_roll, target_pitch, copter.aparm.angle_max, copter.aparm.angle_max);
+    // Compute PID correction for upper CCW motor (channel 0)
+    float correction_upper = compute_pid_correction(
+        rpm_target_upper,
+        rpm_measured_upper,
+        rpm_measured_filtered_upper,
+        rpm_integrator_upper,
+        rpm_last_error_upper,
+        rpm_last_p_term_upper,
+        rpm_last_i_term_upper,
+        rpm_last_d_term_upper
+    );
 
-    // float target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->norm_input_dz());
+    // Compute PID correction for lower CW motor (channel 3)
+    float correction_lower = compute_pid_correction(
+        rpm_target_lower,
+        rpm_measured_lower,
+        rpm_measured_filtered_lower,
+        rpm_integrator_lower,
+        rpm_last_error_lower,
+        rpm_last_p_term_lower,
+        rpm_last_i_term_lower,
+        rpm_last_d_term_lower
+    );
 
-    // Set motors to full range
-    // motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
+    // Update last update time after running both controllers
+    rpm_last_update_ms = AP_HAL::millis();
+
+    // Integrate the corrections directly into the collective throttle states
+    rpm_throttle_output_upper += correction_upper;
+    rpm_throttle_output_lower += correction_lower;
+
+    // Clamp output throttles to valid range
+    rpm_throttle_output_upper = constrain_float(rpm_throttle_output_upper, 0.0f, 1.0f);
+    rpm_throttle_output_lower = constrain_float(rpm_throttle_output_lower, 0.0f, 1.0f);
+
+    // Find CX_YW_TRM parameter dynamically to access yaw_trim from AP_MotorsCoax
+    ap_var_type vtype;
+    AP_Float* cx_yw_trm_param = (AP_Float*)AP_Param::find("CX_YW_TRM", &vtype);
+    float yaw_trim = (cx_yw_trm_param != nullptr) ? cx_yw_trm_param->get() : 1.0f;
+
+    // Map upper/lower throttle targets to throttle average and differential yaw
+    float throttle_avg = (rpm_throttle_output_upper + rpm_throttle_output_lower) / (1.0f + yaw_trim);
+    float throttle_diff = 2.0f * (rpm_throttle_output_upper - throttle_avg);
+
+    // Clamp throttle_avg to valid range
+    throttle_avg = constrain_float(throttle_avg, 0.0f, 1.0f);
 
     // Call attitude controller for stabilization
-    // attitude_control->input_euler_angle_roll_pitch_bf_rate_yaw(target_roll, target_pitch, target_yaw_rate);
     attitude_control->input_euler_angle_roll_pitch_bf_rate_yaw(0.0f, 0.0f, 0.0f);
     
     // Set collective throttle output
-    attitude_control->set_throttle_out(rpm_throttle_output, false, g.throttle_filt);
+    attitude_control->set_throttle_out(throttle_avg, false, g.throttle_filt);
+
+    // Command differential thrust using set_yaw on the motors library
+    motors->set_yaw(throttle_diff);
 }
 
 void ModeRpmControl::log_rpm_data()
@@ -367,16 +408,32 @@ void ModeRpmControl::log_rpm_data()
     if (now_ms - last_log_ms >= 20) {
         last_log_ms = now_ms;
         
+        // Log upper rotor (ID 0)
         copter.Log_Write_RPMF(
-            rpm_target,
-            rpm_measured_filtered,
-            rpm_error,
-            rpm_last_p_term,
-            rpm_last_i_term,
-            rpm_last_d_term,
-            rpm_error_scaled,
-            rpm_throttle_correction,
-            rpm_throttle_output
+            0,
+            rpm_target_upper,
+            rpm_measured_filtered_upper,
+            (rpm_target_upper - rpm_measured_filtered_upper),
+            rpm_last_p_term_upper,
+            rpm_last_i_term_upper,
+            rpm_last_d_term_upper,
+            (rpm_target_upper - rpm_measured_filtered_upper) * 0.001f,
+            rpm_last_p_term_upper + rpm_last_i_term_upper + rpm_last_d_term_upper,
+            rpm_throttle_output_upper
+        );
+
+        // Log lower rotor (ID 3)
+        copter.Log_Write_RPMF(
+            3,
+            rpm_target_lower,
+            rpm_measured_filtered_lower,
+            (rpm_target_lower - rpm_measured_filtered_lower),
+            rpm_last_p_term_lower,
+            rpm_last_i_term_lower,
+            rpm_last_d_term_lower,
+            (rpm_target_lower - rpm_measured_filtered_lower) * 0.001f,
+            rpm_last_p_term_lower + rpm_last_i_term_lower + rpm_last_d_term_lower,
+            rpm_throttle_output_lower
         );
     }
 #endif

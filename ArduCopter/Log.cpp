@@ -410,6 +410,7 @@ void Copter::Log_Write_Guided_Attitude_Target(ModeGuided::SubMode target_type, f
 struct PACKED log_RpmFeedback {
     LOG_PACKET_HEADER;
     uint64_t time_us;
+    uint8_t id;
     float target;
     float measured;
     float error;
@@ -422,11 +423,12 @@ struct PACKED log_RpmFeedback {
 };
 
 // Write an RPM feedback packet
-void Copter::Log_Write_RPMF(float target, float measured, float error, float p, float i, float d, float error_scaled, float throttle_corr, float throttle_out)
+void Copter::Log_Write_RPMF(uint8_t id, float target, float measured, float error, float p, float i, float d, float error_scaled, float throttle_corr, float throttle_out)
 {
     struct log_RpmFeedback pkt = {
         LOG_PACKET_HEADER_INIT(LOG_RPMF_MSG),
         time_us       : AP_HAL::micros64(),
+        id            : id,
         target        : target,
         measured      : measured,
         error         : error,
@@ -608,7 +610,7 @@ const struct LogStructure Copter::log_structure[] = {
 // @Field: ThC: Throttle Correction
 // @Field: ThO: RPM Throttle Output
     { LOG_RPMF_MSG, sizeof(log_RpmFeedback),
-      "RPMF", "Qfffffffff", "TimeUS,Tar,Act,Err,P,I,D,ErrS,ThC,ThO", "sqqq------", "F000------", true },
+      "RPMF", "QBfffffffff", "TimeUS,Id,Tar,Act,Err,P,I,D,ErrS,ThC,ThO", "s#qqq------", "F-000------", true },
 };
 
 void Copter::Log_Write_Vehicle_Startup_Messages()

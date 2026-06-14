@@ -871,7 +871,7 @@ private:
     void Log_Write_Guided_Attitude_Target(ModeGuided::SubMode target_type, float roll, float pitch, float yaw, const Vector3f &ang_vel, float thrust, float climb_rate);
     void Log_Write_SysID_Setup(uint8_t systemID_axis, float waveform_magnitude, float frequency_start, float frequency_stop, float time_fade_in, float time_const_freq, float time_record, float time_fade_out);
     void Log_Write_SysID_Data(float waveform_time, float waveform_sample, float waveform_freq, float angle_x, float angle_y, float angle_z, float accel_x, float accel_y, float accel_z);
-    void Log_Write_RPMF(float target, float measured, float error, float p, float i, float d, float error_scaled, float throttle_corr, float throttle_out);
+    void Log_Write_RPMF(uint8_t id, float target, float measured, float error, float p, float i, float d, float error_scaled, float throttle_corr, float throttle_out);
     void Log_Write_Vehicle_Startup_Messages();
     void log_init(void);
 #endif  // HAL_LOGGING_ENABLED

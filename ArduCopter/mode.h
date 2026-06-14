@@ -1596,33 +1596,38 @@ protected:
     const char *name4() const override { return "RPMC"; }
 
 private:
-    // PID controller state
-    float rpm_integrator;           // Integral accumulator
-    float rpm_last_error;           // Previous error for derivative
+    // PID controller states
+    float rpm_integrator_upper;
+    float rpm_integrator_lower;
+    float rpm_last_error_upper;
+    float rpm_last_error_lower;
     uint32_t rpm_last_update_ms;    // Last update time for dt calculation
-    float rpm_last_p_term;          // Last Proportional term
-    float rpm_last_i_term;          // Last Integral term
-    float rpm_last_d_term;          // Last Derivative term
-    float rpm_throttle_output;      // Current governor collective throttle output
-    float rpm_error_scaled;         // Last scaled RPM error
-    float rpm_throttle_correction;  // Last throttle correction computed
-    float rpm_error;                // Last RPM error
+    float rpm_last_p_term_upper;
+    float rpm_last_i_term_upper;
+    float rpm_last_d_term_upper;
+    float rpm_last_p_term_lower;
+    float rpm_last_i_term_lower;
+    float rpm_last_d_term_lower;
+    float rpm_throttle_output_upper;
+    float rpm_throttle_output_lower;
 
     // RPM telemetry storage
-    float rpm_measured_filtered;    // Low-pass filtered measured RPM
+    float rpm_measured_filtered_upper;
+    float rpm_measured_filtered_lower;
     uint32_t rpm_telemetry_last_ms; // Last time we received RPM telemetry
 
     // Helper functions
-    float get_rpm_from_telemetry(uint8_t motor_index);
+    float get_rpm_from_telemetry(uint8_t motor_channel);
     float update_rpm_filter(float new_rpm, float current_filtered);
-    float compute_pid_correction();
+    float compute_pid_correction(float target_rpm, float rpm_measured, float &measured_filtered, float &integrator, float &last_error, float &last_p_term, float &last_i_term, float &last_d_term);
     void apply_rpm_control();
     bool check_rpm_telemetry_timeout();
     void log_rpm_data();
 
     // Parameters
     AP_Int8   rpm_enabled;          // Enable/disable RPM control mode
-    AP_Float  rpm_target;           // Target RPM (for all motors, can be made per-motor later)
+    AP_Float  rpm_target_upper;     // Target RPM Upper CCW Rotor
+    AP_Float  rpm_target_lower;     // Target RPM Lower CW Rotor
     AP_Float  rpm_kp;               // Proportional gain
     AP_Float  rpm_ki;               // Integral gain
     AP_Float  rpm_kd;               // Derivative gain
