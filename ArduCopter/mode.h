@@ -1582,6 +1582,7 @@ public:
     bool init(bool ignore_checks) override;
     void run() override;
     void exit() override;
+    void output_to_motors() override;
 
     bool requires_GPS() const override { return false; }
     bool has_manual_throttle() const override { return true; }

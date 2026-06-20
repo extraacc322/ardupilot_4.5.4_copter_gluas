@@ -337,7 +337,9 @@ bool ModeRpmControl::check_rpm_telemetry_timeout()
 
 void ModeRpmControl::apply_rpm_control()
 {
-    // Fetch individual rotor telemetry values
+    // Fetch individual rotor telemetry values and multiply by 1.16f to 
+    // convert esc measured rpm into actual rotor rpm. 1.16f was obtained 
+    // by comparing esc measured rpm with actual rotor rpm using optical tachometer.
     float rpm_measured_upper = get_rpm_from_telemetry(0)*1.16f;
     float rpm_measured_lower = get_rpm_from_telemetry(3)*1.16f;
 
@@ -436,7 +438,25 @@ void ModeRpmControl::log_rpm_data()
             rpm_throttle_output_lower
         );
     }
+}
 #endif
+
+void ModeRpmControl::output_to_motors()
+{
+    // Execute standard output first (keeps flap servos and spool states updated)
+    Mode::output_to_motors();
+
+    // If in active control, overwrite the motor channels with raw, unconstrained throttle
+    if (motors->get_spool_state() == AP_Motors::SpoolState::THROTTLE_UNLIMITED) {
+        uint16_t pwm_min = motors->get_pwm_output_min();
+        uint16_t pwm_max = motors->get_pwm_output_max();
+        
+        uint16_t pwm_upper = pwm_min + (uint16_t)(rpm_throttle_output_upper * (pwm_max - pwm_min));
+        uint16_t pwm_lower = pwm_min + (uint16_t)(rpm_throttle_output_lower * (pwm_max - pwm_min));
+
+        motors->rc_write(0, pwm_upper);
+        motors->rc_write(3, pwm_lower);
+    }
 }
 
 #endif // MODE_RPM_CONTROL_ENABLED
